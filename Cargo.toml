@@ -1,0 +1,9 @@
+[package]
+name = "ssh-key-sync"
+version = "0.1.0"
+authors = ["Ethan Budd <ethan@ebudd.io>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
