@@ -14,7 +14,7 @@ pub fn get_current_keys() -> Vec<String>{
         Err(_) => String::new()
     };
 
-    return split_keys(&keys_string);
+    return clean_keys(split_keys(&keys_string));
 }
 
 pub fn write_keys(keys: Vec<String>) -> anyhow::Result<()> {
@@ -28,17 +28,20 @@ pub fn write_keys(keys: Vec<String>) -> anyhow::Result<()> {
     return Ok(())
 }
 
-pub fn split_keys(allkeys: &str) -> Vec<String> {
-    return allkeys.split("\n")
+pub fn split_keys(all_keys: &str) -> Vec<String> {
+    return all_keys.split("\n")
         .filter(|x| x.contains("ssh") || x.contains("ecdsa"))
-        .map(|x| x
-            .split(" ")
-            .map(|x| x.to_owned())
-            .collect::<Vec<String>>()[0..2]
-            .join(" ")
-            .trim()
-            .to_owned())
+        .map(|x| x.trim().to_owned())
         .collect();
+}
+
+fn clean_keys(original_keys: Vec<String>) -> Vec<String> {
+    return original_keys.iter().map(|x| x
+        .split(" ")
+        .map(|x| x.to_owned())
+        .collect::<Vec<String>>()[0..2]
+        .join(" ")
+    ).collect();
 }
 
 fn get_auth_keys_path() -> PathBuf {

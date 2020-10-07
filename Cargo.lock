@@ -938,6 +938,7 @@ dependencies = [
  "reqwest",
  "structopt",
  "tokio",
+ "url",
 ]
 
 [[package]]

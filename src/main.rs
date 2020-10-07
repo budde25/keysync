@@ -1,6 +1,7 @@
 use anyhow::anyhow;
 use structopt::clap::Shell;
 use structopt::StructOpt;
+use url::Url;
 
 mod http;
 mod file;
@@ -13,7 +14,7 @@ enum Cli {
     /// The username to fetch
     #[structopt(name = "get")]
     Get {
-        /// The username to pull from
+        /// The username of the account to get keys from
         #[structopt(name = "username")]
         username: String,
 
@@ -21,9 +22,9 @@ enum Cli {
         #[structopt(short, long)]
         github: bool,
 
-        /// Retrive from launchpad
-        #[structopt(short, long)]
-        launchpad: bool,
+        /// Retrive from gitlab, requires url
+        #[structopt(name="url", short = "l", long = "gitlab")]
+        url: Option<String>,
     },
 
     /// Set a import to run on a job
@@ -41,33 +42,40 @@ fn main() -> anyhow::Result<()> {
 
     let cli = Cli::from_args();
     match cli {
-        Cli::Get {username, github, launchpad} => get(username, github, launchpad)?,
+        Cli::Get {username, github, url} => get(username, github, url)?,
         Cli::Set {} => (),
         Cli::Job {} => (),
     }
     return Ok(());
 }
 
-fn get(username: String, mut github: bool, launchpad: bool) -> anyhow::Result<()> {
+fn get(username: String, mut github: bool, gitlab: Option<String>) -> anyhow::Result<()> {
 
     // if none are selected default to github
-    if !github && !launchpad {
+    if !github && gitlab.is_none() {
         github = true;
     }
 
     let mut keys: Vec<String> = vec![];
 
-    let github_response: String;
     if github {
-        github_response = http::get_github(&username)?;
-        let mut a = file::split_keys(&github_response);
-        keys.append(&mut a);
+        let response = http::get_github(&username)?;
+        keys.append(&mut file::split_keys(&response));
     }
 
-    let keys_to_add = filter_keys(keys, file::get_current_keys());
-    let num_keys_to_add = keys_to_add.len();
+    if let Some(mut url) = gitlab {
+        if !url.contains("http") {
+            url = format!("{}{}", "https://", url);
+        }
+        let gitlab_url: Url = Url::parse(&url)?;
+        let response = http::get_gitlab(&username, gitlab_url)?;
+        keys.append(&mut file::split_keys(&response));
+    }
 
-    file::write_keys(keys_to_add)?;
+    let keys_to_add: Vec<String> = filter_keys(keys, file::get_current_keys());
+    let num_keys_to_add: usize = keys_to_add.len();
+
+    //file::write_keys(keys_to_add)?;
 
     println!("Added {} keys", num_keys_to_add);
     return Ok(())
