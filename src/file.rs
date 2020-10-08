@@ -1,20 +1,18 @@
 use dirs;
-use std::path::Path;
 use std::path::PathBuf;
 use std::fs::File;
 use std::fs;
 use anyhow;
 use std::io::Write;
 
-pub fn get_current_keys() -> Vec<String>{
-    let auth_keys_path = get_auth_keys_path();
-    let content = fs::read_to_string(auth_keys_path);
+pub fn get_current_keys() -> anyhow::Result<Vec<String>>{
+    let content = fs::read_to_string(get_auth_keys_path()?);
     let keys_string = match content {
         Ok(val) => val,
         Err(_) => String::new()
     };
 
-    return clean_keys(split_keys(&keys_string));
+    return Ok(clean_keys(split_keys(&keys_string)));
 }
 
 pub fn write_keys(keys: Vec<String>) -> anyhow::Result<()> {
@@ -22,7 +20,7 @@ pub fn write_keys(keys: Vec<String>) -> anyhow::Result<()> {
     let mut file: File = fs::OpenOptions::new()
         .write(true)
         .append(true)
-        .open(&get_auth_keys_path())?;
+        .open(&get_auth_keys_path()?)?;
     
     file.write(content.as_bytes())?;
     return Ok(())
@@ -44,7 +42,7 @@ fn clean_keys(original_keys: Vec<String>) -> Vec<String> {
     ).collect();
 }
 
-fn get_auth_keys_path() -> PathBuf {
+fn get_auth_keys_path() -> anyhow::Result<PathBuf> {
     let home = dirs::home_dir();
 
     let ssh_auth_path = match home {
@@ -53,8 +51,8 @@ fn get_auth_keys_path() -> PathBuf {
     };
 
     if !ssh_auth_path.is_file(){
-        File::create(&ssh_auth_path);
+        File::create(&ssh_auth_path)?;
     }
 
-    return ssh_auth_path;
+    return Ok(ssh_auth_path);
 }

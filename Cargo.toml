@@ -13,4 +13,5 @@ reqwest = { version = "0.10.8", features = ["json"] }
 tokio = { version = "0.2.22", features = ["full"] }
 anyhow = "1.0"
 dirs = "3.0"
-url = "2.1.1"
+url = "2.1"
+daemonize = "0.4"

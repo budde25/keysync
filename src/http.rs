@@ -7,11 +7,13 @@ use url::Url;
 
 const GITHUB_URL: &str = "https://github.com/";
 
+/// creates the client
 fn get_client() -> Result<Client, Error> {
     let timeout = Duration::new(10, 0);
     return Ok(ClientBuilder::new().timeout(timeout).build()?)
 }
 
+/// Gets the ssh keys from github
 #[tokio::main]
 pub async fn get_github(username: &str) -> Result<String, Error> {
     let request: String = format!(
@@ -35,6 +37,7 @@ pub async fn get_github(username: &str) -> Result<String, Error> {
     }
 }
 
+/// Gets the ssh keys from gitlab
 #[tokio::main]
 pub async fn get_gitlab(username: &str, url: Url) -> Result<String, Error> {
     let request: String = format!(
