@@ -1,31 +1,86 @@
-
-use daemonize::Daemonize;
-use std::fs::File;
-use std::io::prelude::*;
+use super::http;
+use job_scheduler::Job;
+use job_scheduler::JobScheduler;
 use std::{thread, time};
+use url::Url;
 
-pub fn new() {
-    let stdout = File::create("/tmp/daemon.out").unwrap();
-    let stderr = File::create("/tmp/daemon.err").unwrap();
+use super::file;
 
-    let daemonize = Daemonize::new()
-        .user("budd")
-        .group("budd")
-        .stdout(stdout)
-        .stderr(stderr);
+pub fn start() -> anyhow::Result<()> {
+    file::create_schedule_if_not_exist()?;
 
+    let mut sched = JobScheduler::new();
+    sched = schedule_tasks(sched)?;
+    let sleep_time = time::Duration::from_millis(60 * 1000); // 1 minute
+    let mut last_modified = file::schedule_last_modified()?;
 
-    let mut n = 1;
-    match daemonize.start() {
-        
-        Ok(_) => loop {
-            
-            let sleep_time = time::Duration::from_millis(3 * 1000);
-            let date = format!("UTC now is: {}\n", n);
-            println!("{}",date);
-            thread::sleep(sleep_time);
-            n = n+ 1;
-        },
-        Err(e) => eprintln!("Error, {}", e),
+    let mut n: u32 = 0;
+    loop {
+        println!("running for {} minute(s)", n);
+
+        let new_last_modified = file::schedule_last_modified()?;
+        if last_modified != new_last_modified {
+            last_modified = new_last_modified;
+            sched = JobScheduler::new();
+            sched = schedule_tasks(sched)?;
+        }
+
+        sched.tick();
+
+        thread::sleep(sleep_time);
+        n = n + 1;
     }
+}
+
+fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
+    println!("Schduling jobs");
+    let schedule: Vec<String> = file::get_schedule()?;
+    for item in schedule {
+        if item.trim().is_empty() {
+            continue;
+        }
+        let data: Vec<String> = item.split("|").map(|x| x.to_owned()).collect();
+        let user: String = data[0].clone();
+        let cron: String = data[1].clone();
+        let url: Url = Url::parse(&data[2])?;
+        let username: String = data[3].clone();
+
+        match cron.parse() {
+            Ok(valid) => {
+                sched.add(Job::new(valid, move || {
+                    run_job(user.to_owned(), url.to_owned(), username.to_owned())
+                }));
+                println!("Scheduled item {}", item);
+            }
+            Err(_) => {
+                println!("Cron {} failed to be parsed, skipping...", cron);
+                continue;
+            }
+        }
+    }
+
+    return Ok(sched);
+}
+
+fn run_job(user: String, url: Url, username: String) -> () {
+    let content = http::get_standard(&username, url);
+
+    let clean_content = match content {
+        Ok(clean) => clean,
+        Err(_) => return (),
+    };
+
+    let mut keys = file::split_keys(&clean_content);
+    let exist = match file::get_current_keys(Some(user.clone())) {
+        Ok(key) => key,
+        Err(_) => return (),
+    };
+    let keys_to_add: Vec<String> = super::filter_keys(keys, exist);
+    let num_keys_to_add: usize = keys_to_add.len();
+
+    println!(
+        "Added {} to {}'s authorized_keys file",
+        num_keys_to_add, user
+    );
+    file::write_keys(keys_to_add, Some(user));
 }
