@@ -1,6 +1,7 @@
 use anyhow;
 use dirs;
 use filetime::FileTime;
+use log::{debug, error, info, warn};
 use std::fs;
 use std::fs::File;
 use std::io::Write;
@@ -19,14 +20,24 @@ pub fn get_current_keys(user: Option<String>) -> anyhow::Result<Vec<String>> {
 pub fn write_keys(keys: Vec<String>, username: Option<String>) -> anyhow::Result<()> {
     let path = get_auth_keys_path(username)?;
 
-    let content: String = keys.join("\n");
-    let mut file: File = fs::OpenOptions::new()
-        .write(true)
-        .append(true)
-        .open(&path)?;
+    info!("Writing keys to {:?}", path);
 
-    file.write(content.as_bytes())?;
-    return Ok(());
+    let content: String = keys.join("\n");
+    let mut file: File = match fs::OpenOptions::new().write(true).append(true).open(&path) {
+        Ok(f) => f,
+        Err(e) => {
+            error!("Opening file {:?} failed. {}", path, e);
+            return Ok(());
+        }
+    };
+
+    match file.write(content.as_bytes()) {
+        Ok(_) => return Ok(()),
+        Err(e) => {
+            error!("Writing to file {:?} failed. {}", path, e);
+            return Ok(());
+        }
+    }
 }
 
 pub fn split_keys(all_keys: &str) -> Vec<String> {

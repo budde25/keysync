@@ -1,4 +1,5 @@
 use anyhow;
+use log::{debug, error, info, warn};
 use structopt::clap::Shell;
 use structopt::StructOpt;
 use url::Url;
@@ -7,13 +8,26 @@ mod daemon;
 mod file;
 mod http;
 
+#[derive(StructOpt)]
+#[structopt(
+    name = "SSH Key Sync",
+    about = "A command line client and service for keeping SHH keys up to date with a list Ex: Github."
+)]
+struct Opt {
+    /// Verbose mode (-v, -vv, -vvv)
+    #[structopt(short, long, parse(from_occurrences))]
+    verbose: u8,
+
+    #[structopt(subcommand)] // Note that we mark a field as a subcommand
+    pub cmd: Command,
+}
 /// Main Cli struct with StructOpt
 #[derive(Debug, StructOpt)]
 #[structopt(
     name = "SSH Key Sync",
     about = "A command line client and service for keeping SHH keys up to date with a list Ex: Github."
 )]
-enum Cli {
+enum Command {
     /// The username to fetch
     #[structopt(name = "get")]
     Get {
@@ -30,11 +44,11 @@ enum Cli {
         url: Option<String>,
     },
 
-    /// Set a import to run on a job
+    /// Add an automatic job
     #[structopt(name = "set")]
     Set {},
 
-    /// See active jobs
+    /// Current enabled jobs
     #[structopt(name = "jobs")]
     Job {},
 }
@@ -48,17 +62,36 @@ fn main() -> anyhow::Result<()> {
         anyhow::anyhow!("Process should not stop");
     }
 
-    Cli::clap().gen_completions(env!("CARGO_PKG_NAME"), Shell::Bash, "target");
+    Opt::clap().gen_completions(env!("CARGO_PKG_NAME"), Shell::Bash, "target");
 
-    let cli = Cli::from_args();
-    match cli {
-        Cli::Get {
+    let cli: Opt = Opt::from_args();
+
+    // Sets the log level
+    match cli.verbose {
+        0 => env_logger::builder()
+            .filter_level(log::LevelFilter::Warn)
+            .init(),
+        1 => env_logger::builder()
+            .filter_level(log::LevelFilter::Info)
+            .init(),
+        2 => env_logger::builder()
+            .filter_level(log::LevelFilter::Debug)
+            .init(),
+        _ => env_logger::builder()
+            .filter_level(log::LevelFilter::Trace)
+            .init(),
+    };
+
+    info!("Logger has been intaialized");
+
+    match cli.cmd {
+        Command::Get {
             username,
             github,
             url,
         } => get(username, github, url)?,
-        Cli::Set {} => (),
-        Cli::Job {} => (),
+        Command::Set {} => (),
+        Command::Job {} => (),
     };
 
     return Ok(());
@@ -66,10 +99,19 @@ fn main() -> anyhow::Result<()> {
 
 /// Gets the keys from a provider
 fn get(username: String, mut github: bool, gitlab: Option<String>) -> anyhow::Result<()> {
+    info!("Getting data for {}", username);
+
     // if none are selected default to github
     if !github && gitlab.is_none() {
         github = true;
     }
+
+    debug!(
+        "github: {}, gitlab: {}, username {}",
+        github,
+        gitlab.is_some(),
+        username,
+    );
 
     let mut keys: Vec<String> = vec![];
 

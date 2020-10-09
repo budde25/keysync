@@ -70,7 +70,7 @@ fn run_job(user: String, url: Url, username: String) -> () {
         Err(_) => return (),
     };
 
-    let mut keys = file::split_keys(&clean_content);
+    let keys = file::split_keys(&clean_content);
     let exist = match file::get_current_keys(Some(user.clone())) {
         Ok(key) => key,
         Err(_) => return (),
