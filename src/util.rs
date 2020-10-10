@@ -23,7 +23,7 @@ pub fn filter_keys(to_add: Vec<String>, exist: Vec<String>) -> Vec<String> {
     return to_add
         .iter()
         .filter(|x| !exist.contains(x))
-        .map(|x| x.to_owned() + " # ssh-import ssh-key-sync")
+        .map(|x| x.to_owned() + " # ssh-import keysync")
         .collect();
 }
 
@@ -49,7 +49,11 @@ mod tests {
 
     #[test]
     fn keys_clean() {
-        let keys = vec!["ssh 12e32 removes this".to_owned(), "test 1".to_owned(), "ecdsa 78".to_owned()];
+        let keys = vec![
+            "ssh 12e32 removes this".to_owned(),
+            "test 1".to_owned(),
+            "ecdsa 78".to_owned(),
+        ];
         let clean = clean_keys(keys);
         assert_eq!(clean[0], "ssh 12e32");
     }

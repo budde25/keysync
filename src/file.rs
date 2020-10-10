@@ -60,7 +60,7 @@ pub fn get_auth_keys_path(user: Option<&str>) -> PathBuf {
 }
 
 fn get_schedule_path() -> PathBuf {
-    return PathBuf::from("/etc/ssh-key-sync-schedule");
+    return PathBuf::from("/etc/keysync-schedule");
 }
 
 pub fn get_schedule() -> anyhow::Result<Vec<String>> {
