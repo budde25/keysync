@@ -82,7 +82,7 @@ pub fn write_to_schedule(user: &str, cron: &str, url: &str, username: &str) -> a
 
     info!("Writing schedule to {:?}", path);
 
-    let content: String = format!("{}|{}|{}|{}", user, cron, url, username);
+    let content: String = format!("{}|{}|{}|{}\n", user, cron, url, username);
     let mut file: File = match fs::OpenOptions::new().write(true).append(true).open(&path) {
         Ok(f) => f,
         Err(e) => {
@@ -129,7 +129,7 @@ fn create_file(path: PathBuf, uid: Uid, gid: Gid) -> anyhow::Result<()> {
     let file_path = path.parent().unwrap();
     if !file_path.is_dir() {
         fs::create_dir(file_path)?;
-        unistd::chown(&path, Some(uid), Some(gid))?;
+        unistd::chown(file_path, Some(uid), Some(gid))?;
     }
     if !path.is_file() {
         File::create(&path)?;
