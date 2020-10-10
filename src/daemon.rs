@@ -1,7 +1,7 @@
 use super::http;
 use job_scheduler::Job;
 use job_scheduler::JobScheduler;
-use log::{debug, error, info, warn};
+use log::{debug, error};
 use std::{thread, time};
 use url::Url;
 
@@ -16,10 +16,7 @@ pub fn start() -> anyhow::Result<()> {
     let sleep_time = time::Duration::from_millis(60 * 1000); // 1 minute
     let mut last_modified = file::schedule_last_modified()?;
 
-    let mut n: u32 = 0;
     loop {
-        println!("running for {} minute(s)", n);
-
         let new_last_modified = file::schedule_last_modified()?;
         if last_modified != new_last_modified {
             last_modified = new_last_modified;
@@ -30,7 +27,6 @@ pub fn start() -> anyhow::Result<()> {
         sched.tick();
 
         thread::sleep(sleep_time);
-        n = n + 1;
     }
 }
 

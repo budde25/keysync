@@ -1,7 +1,7 @@
 use anyhow;
 use dirs;
 use filetime::FileTime;
-use log::{debug, error, info, warn};
+use log::{error, info};
 use nix::unistd;
 use nix::unistd::Gid;
 use nix::unistd::Uid;
