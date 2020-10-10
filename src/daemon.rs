@@ -3,8 +3,10 @@ use job_scheduler::Job;
 use job_scheduler::JobScheduler;
 use std::{thread, time};
 use url::Url;
+use log::{debug, error, info, warn};
 
 use super::file;
+use super::util;
 
 pub fn start() -> anyhow::Result<()> {
     file::create_schedule_if_not_exist()?;
@@ -36,9 +38,11 @@ fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
     println!("Schduling jobs");
     let schedule: Vec<String> = file::get_schedule()?;
     for item in schedule {
+        // Skips any empty lines
         if item.trim().is_empty() {
             continue;
         }
+
         let data: Vec<String> = item.split("|").map(|x| x.to_owned()).collect();
         let user: String = data[0].clone();
         let cron: String = data[1].clone();
@@ -47,6 +51,15 @@ fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
 
         match cron.parse() {
             Ok(valid) => {
+
+                match file::create_file_for_user(user.clone()) {
+                    Ok(_) => debug!("authorized keys file for {} exists or was created", user),
+                    Err(e) => {
+                        error!("Unable to create authorized keys file for user {}. {}", user, e);
+                        continue;
+                    }
+                };
+
                 sched.add(Job::new(valid, move || {
                     run_job(user.to_owned(), url.to_owned(), username.to_owned())
                 }));
@@ -70,12 +83,12 @@ fn run_job(user: String, url: Url, username: String) -> () {
         Err(_) => return (),
     };
 
-    let keys = file::split_keys(&clean_content);
+    let keys = util::split_keys(&clean_content);
     let exist = match file::get_current_keys(Some(user.clone())) {
         Ok(key) => key,
         Err(_) => return (),
     };
-    let keys_to_add: Vec<String> = super::filter_keys(keys, exist);
+    let keys_to_add: Vec<String> = util::filter_keys(keys, exist);
     let num_keys_to_add: usize = keys_to_add.len();
 
     println!(
