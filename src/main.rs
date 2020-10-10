@@ -297,8 +297,10 @@ fn set(
     let url_as_url: Url = Url::parse(&url_to_add)?;
 
     if !dry_run {
-        file::write_to_schedule(&user, &cron, &url_as_url.to_string(), &username)?;
-        println!("Successfully added import schedule")
+        match file::write_to_schedule(&user, &cron, &url_as_url.to_string(), &username) {
+            Ok(_) => println!("Successfully added import schedule"),
+            Err(e) => error!("{}", e),
+        };
     } else {
         println!("Syntax Ok")
     }
