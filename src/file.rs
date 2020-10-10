@@ -83,21 +83,13 @@ pub fn write_to_schedule(user: &str, cron: &str, url: &str, username: &str) -> a
     info!("Writing schedule to {:?}", path);
 
     let content: String = format!("{}|{}|{}|{}\n", user, cron, url, username);
-    let mut file: File = match fs::OpenOptions::new().write(true).append(true).open(&path) {
-        Ok(f) => f,
-        Err(e) => {
-            error!("Opening file {:?} failed. {}", path, e);
-            return Ok(());
-        }
-    };
+    let mut file: File = fs::OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open(&path)?;
 
-    match file.write(content.as_bytes()) {
-        Ok(_) => return Ok(()),
-        Err(e) => {
-            error!("Writing to file {:?} failed. {}", path, e);
-            return Ok(());
-        }
-    }
+    file.write(content.as_bytes())?;
+    return Ok(());
 }
 
 pub fn create_schedule_if_not_exist() -> anyhow::Result<bool> {
