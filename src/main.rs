@@ -114,7 +114,7 @@ fn main() -> anyhow::Result<()> {
         anyhow::anyhow!("Process should not stop");
     }
 
-    Opt::clap().gen_completions(env!("CARGO_PKG_NAME"), Shell::Bash, "target");
+    //Opt::clap().gen_completions(env!("CARGO_PKG_NAME"), Shell::Bash, "target");
 
     let cli: Opt = Opt::from_args();
 
