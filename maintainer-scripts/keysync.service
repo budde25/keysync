@@ -2,7 +2,7 @@
 Description=The SSH Key Sync service
 After=network.target
 [Service]
-ExecStart=/home/budd/programs/ssh-key-sync/target/debug/ssh-key-sync --daemon
+ExecStart=usr/bin/keysync --daemon
 Type=simple
 [Install]
 WantedBy=multi-user.service

@@ -11,10 +11,24 @@ categories = ["command-line-utilities"]
 homepage = "https://github.com/budde25/ssh-key-sync"
 repository = "https://github.com/budde25/ssh-key-sync"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[package.metadata.deb]
+maintainer = "Ethan Budd <budde25@protonmail.com>"
+extended-description = """\
+keysync is a command line utility and service to help keep your local authorized_keys file synced to a master copy \
+of public keys. The program allows syncing from Github and Gitlab at the moment, custom url support is coming soon. \
+It downloads and filters only keys that you don't already have a local copy of. This application can be used for either \
+as one time sync when run, or running automatically in the background as a systemd service. You can have the file it \
+updated at a preset interval or a custom cron expression, you can even support multiple users and providers. """
+section = "utility"
+
+
+[package.metadata.deb.systemd-units]
+maintainer-scripts = "maintainer-scripts/"
+systemd-units = { enable = true }
+
 
 [dependencies]
-
 structopt = "0.3"
 reqwest = { version = "0.10.8", features = ["json"] }
 tokio = { version = "0.2.22", features = ["full"] }
