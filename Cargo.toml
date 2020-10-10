@@ -1,8 +1,15 @@
 [package]
-name = "ssh-key-sync"
+name = "keysync"
 version = "0.1.0"
-authors = ["Ethan Budd <ethan@ebudd.io>"]
+authors = ["Ethan Budd <budde25@protonmail.com>"]
 edition = "2018"
+description = "A utility to sync local authorized_keys file updated with your with Github and Gitlab public keys"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+keywords = ["SSH", "CLI", "utilities", "Github", "keys"]
+categories = ["command-line-utilities"]
+homepage = "https://github.com/budde25/ssh-key-sync"
+repository = "https://github.com/budde25/ssh-key-sync"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

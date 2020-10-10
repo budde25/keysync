@@ -564,6 +564,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "keysync"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "cron",
+ "dirs",
+ "env_logger",
+ "filetime",
+ "job_scheduler",
+ "log",
+ "nix",
+ "reqwest",
+ "structopt",
+ "tokio",
+ "url",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1135,25 +1154,6 @@ dependencies = [
  "libc",
  "redox_syscall",
  "winapi 0.3.9",
-]
-
-[[package]]
-name = "ssh-key-sync"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "cron",
- "dirs",
- "env_logger",
- "filetime",
- "job_scheduler",
- "log",
- "nix",
- "reqwest",
- "structopt",
- "tokio",
- "url",
 ]
 
 [[package]]
