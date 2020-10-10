@@ -1,5 +1,10 @@
 # keysync - An SSH syncing utility and service
 
+[![Build Status](https://travis-ci.com/budde25/ssh-key-sync.svg?branch=main)](https://travis-ci.com/budde25/ssh-key-sync)
+[![Crates.io](https://img.shields.io/crates/v/keysync)](https://crates.io/crates/keysync)
+[![Crates.io](https://img.shields.io/crates/d/keysync)](https://crates.io/crates/keysync)
+[![Snapcraft.io](https://snapcraft.io//keysync/badge.svg)](https://snapcraft.io/keysync)
+
 keysync is a command line utility and service to help keep your local authorized_keys file synced to a master copy of public keys. The program allows syncing from Github and Gitlab at the moment, custom url support is coming soon. It downloads and filters only keys that you don't already have a local copy of. This application can be used for either as one time sync when run, or running automatically in the background as a systemd service. You can have the file it updated at a preset interval or a custom cron expression, you can even support multiple users and providers.  
 
 Note: Automatic jobs will fail if the computer goes to sleep/hibernate. The systemd daemon is recommeded primarily for servers. For personal computers it is recomended to just run the command manually whenever you add public keys.
