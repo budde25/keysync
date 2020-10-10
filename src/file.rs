@@ -102,6 +102,7 @@ fn create_file(path: PathBuf, uid: Uid, gid: Gid) -> anyhow::Result<()> {
     let file_path = path.parent().unwrap();
     if !file_path.is_dir() {
         fs::create_dir(file_path)?;
+        unistd::chown(&path, Some(uid), Some(gid))?;
     }
     if !path.is_file() {
         File::create(&path)?;

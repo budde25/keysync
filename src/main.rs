@@ -3,6 +3,7 @@ use log::{debug, error, info, warn};
 use structopt::clap::Shell;
 use structopt::StructOpt;
 use url::Url;
+use nix::unistd::Uid;
 
 mod daemon;
 mod file;
@@ -114,6 +115,10 @@ fn get(
     // if none are selected default to github
     if !github && gitlab.is_none() {
         github = true;
+    }
+
+    if Uid::current().is_root() {
+        warn!("Running get as root downloads the keys to the root users authorized keys file, which might not be intended");
     }
 
     if !dry_run {
