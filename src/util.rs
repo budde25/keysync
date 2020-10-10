@@ -41,3 +41,33 @@ pub fn clean_keys(original_keys: Vec<String>) -> Vec<String> {
         .map(|x| x.split(" ").map(|x| x.to_owned()).collect::<Vec<String>>()[0..2].join(" "))
         .collect();
 }
+
+// TESTS
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn keys_clean() {
+        let keys = vec!["ssh 12e32 removes this".to_owned(), "test 1".to_owned(), "ecdsa 78".to_owned()];
+        let clean = clean_keys(keys);
+        assert_eq!(clean[0], "ssh 12e32");
+    }
+
+    #[test]
+    fn split() {
+        let keys = "ssh-rsa key\nssh-rsa key2";
+        let arr = split_keys(keys);
+        assert_eq!(arr.len(), 2);
+    }
+
+    #[test]
+    fn filter() {
+        let org_keys = "ssh-rsa key\nssh-rsa key2";
+        let new_keys = "ssh-rsa key2\nssh-rsa key3";
+        let org_arr = split_keys(org_keys);
+        let new_arr = split_keys(new_keys);
+        let diff = filter_keys(org_arr, new_arr);
+        assert_eq!(diff.len(), 1);
+    }
+}
