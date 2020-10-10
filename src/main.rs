@@ -4,7 +4,6 @@ use cron::Schedule;
 use log::{debug, error, info, warn};
 use nix::unistd::Uid;
 use std::str::FromStr;
-use structopt::clap::Shell;
 use structopt::StructOpt;
 use url::Url;
 
