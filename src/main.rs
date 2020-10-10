@@ -96,8 +96,8 @@ fn main() -> anyhow::Result<()> {
             github,
             url,
         } => get(username, github, url, cli.dry_run)?,
-        Command::Set {} => (),
-        Command::Job {} => (),
+        Command::Set {} => set()?,
+        Command::Job {} => jobs()?,
     };
 
     return Ok(());
@@ -167,4 +167,34 @@ fn get(
     }
 
     return Ok(());
+}
+
+fn set() -> anyhow::Result<()> {
+    if !Uid::current().is_root() {
+        warn!("Adding new jobs requires write access to /etc/, you will probably need to run this as root");
+    }
+
+    return Ok(());
+}
+
+fn jobs() -> anyhow::Result<()> {
+    let jobs = file::get_schedule()?;
+    let total_jobs = jobs.len();
+    println!("Found {} job{}", total_jobs, if total_jobs == 1 {""} else {"s"});
+    if total_jobs > 0 {
+        println!("{:<5}{:<15}{:<25}{:<30}{:<15}", "ID", "User", "Cron", "Url", "Username");
+        println!("{:-<90}", "");
+        let mut count: u8 = 0;
+        for job in jobs {
+            count += 1;
+            let data: Vec<&str> = job.split("|").collect();
+            let user: &str = data[0];
+            let cron: &str = data[1];
+            let url: &str = data[2];
+            let username: &str = data[3];
+            println!("{:<5}{:<15}{:<25}{:<30}{:<15}", count, user, cron, url, username);
+        }
+    }
+
+    return Ok(())
 }

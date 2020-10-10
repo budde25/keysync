@@ -70,7 +70,7 @@ pub fn get_schedule() -> anyhow::Result<Vec<String>> {
     }
 
     let content: String = fs::read_to_string(schedule_path)?;
-    return Ok(content.split("\n").map(|x| x.to_owned()).collect());
+    return Ok(content.split("\n").filter(|x| !x.trim().is_empty()).map(|x| x.to_owned()).collect());
 }
 
 pub fn create_schedule_if_not_exist() -> anyhow::Result<bool> {
