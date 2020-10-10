@@ -1142,6 +1142,7 @@ name = "ssh-key-sync"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "clap",
  "cron",
  "dirs",
  "env_logger",

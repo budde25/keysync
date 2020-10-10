@@ -1,9 +1,9 @@
 use super::http;
 use job_scheduler::Job;
 use job_scheduler::JobScheduler;
+use log::{debug, error, info, warn};
 use std::{thread, time};
 use url::Url;
-use log::{debug, error, info, warn};
 
 use super::file;
 use super::util;
@@ -51,11 +51,13 @@ fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
 
         match cron.parse() {
             Ok(valid) => {
-
                 match file::create_file_for_user(Some(&user)) {
                     Ok(_) => debug!("authorized keys file for {} exists or was created", user),
                     Err(e) => {
-                        error!("Unable to create authorized keys file for user {}. {}", user, e);
+                        error!(
+                            "Unable to create authorized keys file for user {}. {}",
+                            user, e
+                        );
                         continue;
                     }
                 };

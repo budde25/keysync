@@ -2,13 +2,13 @@ use anyhow;
 use dirs;
 use filetime::FileTime;
 use log::{debug, error, info, warn};
+use nix::unistd;
+use nix::unistd::Gid;
+use nix::unistd::Uid;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
-use nix::unistd;
-use nix::unistd::Uid;
-use nix::unistd::Gid;
 
 use super::util;
 
@@ -70,7 +70,34 @@ pub fn get_schedule() -> anyhow::Result<Vec<String>> {
     }
 
     let content: String = fs::read_to_string(schedule_path)?;
-    return Ok(content.split("\n").filter(|x| !x.trim().is_empty()).map(|x| x.to_owned()).collect());
+    return Ok(content
+        .split("\n")
+        .filter(|x| !x.trim().is_empty())
+        .map(|x| x.to_owned())
+        .collect());
+}
+
+pub fn write_to_schedule(user: &str, cron: &str, url: &str, username: &str) -> anyhow::Result<()> {
+    let path = get_schedule_path();
+
+    info!("Writing schedule to {:?}", path);
+
+    let content: String = format!("{}|{}|{}|{}", user, cron, url, username);
+    let mut file: File = match fs::OpenOptions::new().write(true).append(true).open(&path) {
+        Ok(f) => f,
+        Err(e) => {
+            error!("Opening file {:?} failed. {}", path, e);
+            return Ok(());
+        }
+    };
+
+    match file.write(content.as_bytes()) {
+        Ok(_) => return Ok(()),
+        Err(e) => {
+            error!("Writing to file {:?} failed. {}", path, e);
+            return Ok(());
+        }
+    }
 }
 
 pub fn create_schedule_if_not_exist() -> anyhow::Result<bool> {
@@ -108,5 +135,5 @@ fn create_file(path: PathBuf, uid: Uid, gid: Gid) -> anyhow::Result<()> {
         File::create(&path)?;
         unistd::chown(&path, Some(uid), Some(gid))?;
     }
-    return Ok(())
+    return Ok(());
 }

@@ -1,6 +1,6 @@
 use nix::unistd;
-use nix::unistd::Uid;
 use nix::unistd::Gid;
+use nix::unistd::Uid;
 
 pub fn get_uid_gid(user: &str) -> anyhow::Result<(Uid, Gid)> {
     let mut uid: Uid = Uid::current();
@@ -12,7 +12,7 @@ pub fn get_uid_gid(user: &str) -> anyhow::Result<(Uid, Gid)> {
             uid = user.uid;
             gid = user.gid;
         }
-        None => {},
+        None => {}
     };
 
     return Ok((uid, gid));

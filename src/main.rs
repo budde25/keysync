@@ -1,14 +1,29 @@
 use anyhow;
+use clap::arg_enum;
+use cron::Schedule;
 use log::{debug, error, info, warn};
+use nix::unistd::Uid;
+use std::str::FromStr;
 use structopt::clap::Shell;
 use structopt::StructOpt;
 use url::Url;
-use nix::unistd::Uid;
 
 mod daemon;
 mod file;
 mod http;
 mod util;
+
+// Default Options options for a cron job
+arg_enum! {
+    #[derive(Debug)]
+    enum DefaultCron {
+        Hourly,
+        Daily,
+        Weekly,
+        Monthly,
+        Custom,
+    }
+}
 
 #[derive(StructOpt)]
 #[structopt(
@@ -25,7 +40,7 @@ struct Opt {
     dry_run: bool,
 
     #[structopt(subcommand)] // Note that we mark a field as a subcommand
-    pub cmd: Command,
+    cmd: Command,
 }
 /// Main Cli struct with StructOpt
 #[derive(Debug, StructOpt)]
@@ -52,7 +67,38 @@ enum Command {
 
     /// Add an automatic job
     #[structopt(name = "set")]
-    Set {},
+    Set {
+        /// Thelocal user who get the keys
+        #[structopt(name = "user")]
+        user: String,
+
+        /// The username of the account to get keys from
+        #[structopt(name = "username")]
+        username: String,
+
+        /// Premade schedules
+        #[structopt(possible_values = &DefaultCron::variants(), case_insensitive = true)]
+        schedule: DefaultCron,
+
+        /// Retrive from github (default)
+        #[structopt(short, long)]
+        github: bool,
+
+        /// Retrive from gitlab, requires url
+        #[structopt(name = "url", short = "l", long = "gitlab")]
+        url: Option<String>,
+
+        /// A schedule in cron format Ex: '* * * * * *'
+        #[structopt(
+            name = "cron",
+            short,
+            long,
+            required_if("schedule", "Custom"),
+            required_if("schedule", "custom"),
+            required_if("schedule", "CUSTOM")
+        )]
+        expression: Option<String>,
+    },
 
     /// Current enabled jobs
     #[structopt(name = "jobs")]
@@ -96,7 +142,22 @@ fn main() -> anyhow::Result<()> {
             github,
             url,
         } => get(username, github, url, cli.dry_run)?,
-        Command::Set {} => set()?,
+        Command::Set {
+            user,
+            username,
+            schedule,
+            github,
+            url,
+            expression,
+        } => set(
+            user,
+            username,
+            github,
+            url,
+            schedule,
+            expression,
+            cli.dry_run,
+        )?,
         Command::Job {} => jobs()?,
     };
 
@@ -169,9 +230,77 @@ fn get(
     return Ok(());
 }
 
-fn set() -> anyhow::Result<()> {
+fn set(
+    user: String,
+    username: String,
+    mut github: bool,
+    gitlab: Option<String>,
+    schedule: DefaultCron,
+    expression: Option<String>,
+    dry_run: bool,
+) -> anyhow::Result<()> {
     if !Uid::current().is_root() {
         warn!("Adding new jobs requires write access to /etc/, you will probably need to run this as root");
+    }
+
+    if !dry_run {
+        file::create_file_for_user(Some(&user))?;
+        file::create_schedule_if_not_exist()?;
+    }
+
+    // if none are selected default to github
+    if !github && gitlab.is_none() {
+        github = true;
+    }
+
+    if github && gitlab.is_some() {
+        error!("Must pick gitlab or github");
+        return Ok(());
+    }
+
+    let cron_result: Result<String, cron::error::Error> = match schedule {
+        DefaultCron::Hourly => parse_cron("@hourly"),
+        DefaultCron::Daily => parse_cron("@daily"),
+        DefaultCron::Weekly => parse_cron("@weekly"),
+        DefaultCron::Monthly => parse_cron("@monthly"),
+        DefaultCron::Custom => match expression {
+            Some(exp) => parse_cron(&exp),
+            None => {
+                error!("Cron expression must be defined with 'Custom' Schedule");
+                return Ok(());
+            }
+        },
+    };
+
+    let cron = match cron_result {
+        Ok(c) => c,
+        Err(e) => {
+            error!("Unable to format this cron expression. {}", e);
+            return Ok(());
+        }
+    };
+
+    let url_to_add: String;
+    if github {
+        url_to_add = http::GITHUB_URL.to_owned();
+    } else if let Some(u) = gitlab {
+        // Default url for empty string
+        if u.trim().is_empty() {
+            url_to_add = http::GITLAB_URL.to_owned();
+        } else {
+            url_to_add = u;
+        }
+    } else {
+        url_to_add = http::GITLAB_URL.to_owned();
+    }
+
+    let url_as_url: Url = Url::parse(&url_to_add)?;
+
+    if !dry_run {
+        file::write_to_schedule(&user, &cron, &url_as_url.to_string(), &username)?;
+        println!("Successfully added import schedule")
+    } else {
+        println!("Syntax Ok")
     }
 
     return Ok(());
@@ -180,9 +309,16 @@ fn set() -> anyhow::Result<()> {
 fn jobs() -> anyhow::Result<()> {
     let jobs = file::get_schedule()?;
     let total_jobs = jobs.len();
-    println!("Found {} job{}", total_jobs, if total_jobs == 1 {""} else {"s"});
+    println!(
+        "Found {} job{}",
+        total_jobs,
+        if total_jobs == 1 { "" } else { "s" }
+    );
     if total_jobs > 0 {
-        println!("{:<5}{:<15}{:<25}{:<30}{:<15}", "ID", "User", "Cron", "Url", "Username");
+        println!(
+            "{:<5}{:<15}{:<25}{:<30}{:<15}",
+            "ID", "User", "Cron", "Url", "Username"
+        );
         println!("{:-<90}", "");
         let mut count: u8 = 0;
         for job in jobs {
@@ -192,9 +328,17 @@ fn jobs() -> anyhow::Result<()> {
             let cron: &str = data[1];
             let url: &str = data[2];
             let username: &str = data[3];
-            println!("{:<5}{:<15}{:<25}{:<30}{:<15}", count, user, cron, url, username);
+            println!(
+                "{:<5}{:<15}{:<25}{:<30}{:<15}",
+                count, user, cron, url, username
+            );
         }
     }
 
-    return Ok(())
+    return Ok(());
+}
+
+fn parse_cron(src: &str) -> Result<String, cron::error::Error> {
+    Schedule::from_str(src)?;
+    return Ok(src.to_string());
 }
