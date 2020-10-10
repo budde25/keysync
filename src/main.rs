@@ -116,6 +116,10 @@ fn get(
         github = true;
     }
 
+    if !dry_run {
+        file::create_file_for_user(None)?;
+    }
+
     debug!(
         "github: {}, gitlab: {}, username {}",
         github,

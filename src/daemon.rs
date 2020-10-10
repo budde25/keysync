@@ -52,7 +52,7 @@ fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
         match cron.parse() {
             Ok(valid) => {
 
-                match file::create_file_for_user(user.clone()) {
+                match file::create_file_for_user(Some(&user)) {
                     Ok(_) => debug!("authorized keys file for {} exists or was created", user),
                     Err(e) => {
                         error!("Unable to create authorized keys file for user {}. {}", user, e);
@@ -84,7 +84,7 @@ fn run_job(user: String, url: Url, username: String) -> () {
     };
 
     let keys = util::split_keys(&clean_content);
-    let exist = match file::get_current_keys(Some(user.clone())) {
+    let exist = match file::get_current_keys(Some(&user)) {
         Ok(key) => key,
         Err(_) => return (),
     };
@@ -95,5 +95,5 @@ fn run_job(user: String, url: Url, username: String) -> () {
         "Added {} to {}'s authorized_keys file",
         num_keys_to_add, user
     );
-    file::write_keys(keys_to_add, Some(user));
+    file::write_keys(keys_to_add, Some(&user));
 }

@@ -12,7 +12,7 @@ use nix::unistd::Gid;
 
 use super::util;
 
-pub fn get_current_keys(user: Option<String>) -> anyhow::Result<Vec<String>> {
+pub fn get_current_keys(user: Option<&str>) -> anyhow::Result<Vec<String>> {
     let content = fs::read_to_string(get_auth_keys_path(user));
     let keys_string = match content {
         Ok(val) => val,
@@ -22,7 +22,7 @@ pub fn get_current_keys(user: Option<String>) -> anyhow::Result<Vec<String>> {
     return Ok(util::clean_keys(util::split_keys(&keys_string)));
 }
 
-pub fn write_keys(keys: Vec<String>, username: Option<String>) -> anyhow::Result<()> {
+pub fn write_keys(keys: Vec<String>, username: Option<&str>) -> anyhow::Result<()> {
     let path = get_auth_keys_path(username);
 
     info!("Writing keys to {:?}", path);
@@ -45,7 +45,7 @@ pub fn write_keys(keys: Vec<String>, username: Option<String>) -> anyhow::Result
     }
 }
 
-pub fn get_auth_keys_path(user: Option<String>) -> PathBuf {
+pub fn get_auth_keys_path(user: Option<&str>) -> PathBuf {
     let home = match user {
         Some(username) => Option::Some(PathBuf::from("/home").join(username)),
         None => dirs::home_dir(),
@@ -87,15 +87,22 @@ pub fn schedule_last_modified() -> anyhow::Result<FileTime> {
     return Ok(FileTime::from_last_modification_time(&metadata));
 }
 
-pub fn create_file_for_user(user: String) -> anyhow::Result<()> {
-    let ids = util::get_uid_gid(&user)?;
-    let path = get_auth_keys_path(Some(user));
+pub fn create_file_for_user(user: Option<&str>) -> anyhow::Result<()> {
+    let ids = match user {
+        Some(u) => util::get_uid_gid(&u)?,
+        None => (Uid::current(), Gid::current()),
+    };
+    let path = get_auth_keys_path(user);
     create_file(path, ids.0, ids.1)?;
 
     return Ok(());
 }
 
 fn create_file(path: PathBuf, uid: Uid, gid: Gid) -> anyhow::Result<()> {
+    let file_path = path.parent().unwrap();
+    if !file_path.is_dir() {
+        fs::create_dir(file_path)?;
+    }
     if !path.is_file() {
         File::create(&path)?;
         unistd::chown(&path, Some(uid), Some(gid))?;
