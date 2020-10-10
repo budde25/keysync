@@ -21,10 +21,7 @@ It downloads and filters only keys that you don't already have a local copy of. 
 as one time sync when run, or running automatically in the background as a systemd service. You can have the file it \
 updated at a preset interval or a custom cron expression, you can even support multiple users and providers. """
 section = "utility"
-
-
-[package.metadata.deb.systemd-units]
-maintainer-scripts = "maintainer-scripts/"
+maintainer-scripts = "debian/"
 systemd-units = { enable = true }
 
 
