@@ -19,6 +19,10 @@ struct Opt {
     #[structopt(short, long, parse(from_occurrences))]
     verbose: u8,
 
+    /// Runs the commands without commiting the changes
+    #[structopt(short, long)]
+    dry_run: bool,
+
     #[structopt(subcommand)] // Note that we mark a field as a subcommand
     pub cmd: Command,
 }
@@ -90,7 +94,7 @@ fn main() -> anyhow::Result<()> {
             username,
             github,
             url,
-        } => get(username, github, url)?,
+        } => get(username, github, url, cli.dry_run)?,
         Command::Set {} => (),
         Command::Job {} => (),
     };
@@ -99,7 +103,12 @@ fn main() -> anyhow::Result<()> {
 }
 
 /// Gets the keys from a provider
-fn get(username: String, mut github: bool, gitlab: Option<String>) -> anyhow::Result<()> {
+fn get(
+    username: String,
+    mut github: bool,
+    gitlab: Option<String>,
+    dry_run: bool,
+) -> anyhow::Result<()> {
     info!("Getting data for {}", username);
 
     // if none are selected default to github
@@ -141,8 +150,12 @@ fn get(username: String, mut github: bool, gitlab: Option<String>) -> anyhow::Re
     let keys_to_add: Vec<String> = util::filter_keys(keys, file::get_current_keys(None)?);
     let num_keys_to_add: usize = keys_to_add.len();
 
-    file::write_keys(keys_to_add, None)?;
+    if !dry_run {
+        file::write_keys(keys_to_add, None)?;
+        println!("Added {} new keys", num_keys_to_add);
+    } else {
+        println!("Found {} new keys", num_keys_to_add);
+    }
 
-    println!("Added {} keys", num_keys_to_add);
     return Ok(());
 }
