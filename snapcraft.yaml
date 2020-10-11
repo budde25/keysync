@@ -1,0 +1,30 @@
+name: keysync
+version: git
+summary: A utility to sync authorized_keys with your with Github/Gitlab public keys.
+description: |
+  keysync is a command line utility and service to help keep your local authorized_keys file synced to a 
+  master copy of public keys. The program allows syncing from Github and Gitlab at the moment, custom url 
+  support is coming soon. It downloads and filters only keys that you don't already have a local copy of. 
+  This application can be used for either as one time sync when run, or running automatically in the 
+  background as a systemd service. You can have the file it updated at a preset interval or a custom 
+  cron expression, you can even support multiple users and providers.
+base: core18
+confinement: classic
+grade: stable
+
+parts:
+  keysync:
+    plugin: rust
+    source: .
+    build-packages:
+      - build-essential
+      - libssl-dev
+
+apps:
+  keysync:
+    command: bin/keysync
+    plugs:
+      - network
+  keysync-daemon:
+    command: bin/keysync
+    daemon: simple
