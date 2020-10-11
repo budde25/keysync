@@ -9,8 +9,14 @@ description: |
   background as a systemd service. You can have the file it updated at a preset interval or a custom 
   cron expression, you can even support multiple users and providers.
 base: core18
-confinement: classic
+confinement: devmode
 grade: stable
+
+plugs:
+  auth-keys:
+    interface: personal-files
+    read: ["$HOME/.ssh/authorized_keys"]
+    write: ["$HOME/.ssh/authorized_keys"]
 
 parts:
   keysync:
@@ -19,12 +25,17 @@ parts:
     build-packages:
       - build-essential
       - libssl-dev
+      - pkg-config
 
 apps:
   keysync:
     command: bin/keysync
     plugs:
       - network
+      - auth-keys
   keysync-daemon:
     command: bin/keysync
     daemon: simple
+    plugs:
+      - network
+      - home

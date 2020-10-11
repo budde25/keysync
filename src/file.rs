@@ -27,7 +27,11 @@ pub fn write_keys(keys: Vec<String>, username: Option<&str>) -> anyhow::Result<(
 
     info!("Writing keys to {:?}", path);
 
-    let content: String = keys.join("\n");
+    if keys.len() == 0 {
+        return Ok(());
+    }
+
+    let content: String = keys.join("\n") + "\n";
     let mut file: File = match fs::OpenOptions::new().write(true).append(true).open(&path) {
         Ok(f) => f,
         Err(e) => {
