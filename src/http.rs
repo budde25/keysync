@@ -44,31 +44,27 @@ mod tests {
     #[ignore]
     fn get_github_budde25() {
         let url = Url::parse(GITHUB_URL).unwrap();
-        get_standard("budde25", url)
-        .expect("Args are valid should return a result");
+        get_standard("budde25", url).expect("Args are valid should return a result");
     }
 
     #[test]
     #[ignore]
     fn get_gitlab_budde25() {
         let url = Url::parse(GITLAB_URL).unwrap();
-        get_standard("budde25", url)
-        .expect("Args are valid should return a result");
+        get_standard("budde25", url).expect("Args are valid should return a result");
     }
 
     #[test]
     #[ignore]
     fn get_wisc_gitlab_budd() {
         let url = Url::parse("https://gitlab.cs.wisc.edu").unwrap();
-        get_standard("budd", url)
-        .expect("Args are valid should return a result");
+        get_standard("budd", url).expect("Args are valid should return a result");
     }
 
     #[test]
     #[ignore]
     fn get_invalid_url() {
         let url = Url::parse("https://abc.edu").unwrap();
-        get_standard("budd", url)
-        .expect_err("Args are valid should not return a result");
+        get_standard("budd", url).expect_err("Args are valid should not return a result");
     }
 }

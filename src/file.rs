@@ -40,7 +40,7 @@ pub fn write_keys(keys: Vec<String>, username: Option<&str>) -> anyhow::Result<(
         }
     };
 
-    match file.write(content.as_bytes()) {
+    match file.write_all(content.as_bytes()) {
         Ok(_) => return Ok(()),
         Err(e) => {
             error!("Writing to file {:?} failed. {}", path, e);
@@ -92,7 +92,7 @@ pub fn write_to_schedule(user: &str, cron: &str, url: &str, username: &str) -> a
         .append(true)
         .open(&path)?;
 
-    file.write(content.as_bytes())?;
+    file.write_all(content.as_bytes())?;
     return Ok(());
 }
 

@@ -89,7 +89,6 @@ fn run_job(user: String, url: Url, username: String) -> () {
     let keys_to_add: Vec<String> = util::filter_keys(keys, exist);
     let num_keys_to_add: usize = keys_to_add.len();
 
-    
     match file::create_file_for_user(Some(&user)) {
         Ok(_) => (),
         Err(e) => eprint!("failed to create file for user. {}", e),
@@ -100,6 +99,6 @@ fn run_job(user: String, url: Url, username: String) -> () {
             "Added {} to {}'s authorized_keys file",
             num_keys_to_add, user
         ),
-        Err(e) => eprint!("failed to write keys to file. {}", e)
+        Err(e) => eprint!("failed to write keys to file. {}", e),
     };
 }
