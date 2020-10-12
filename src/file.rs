@@ -1,5 +1,3 @@
-use anyhow;
-use dirs;
 use filetime::FileTime;
 use log::{error, info};
 use nix::unistd;
@@ -19,7 +17,7 @@ pub fn get_current_keys(user: Option<&str>) -> anyhow::Result<Vec<String>> {
         Err(_) => String::new(),
     };
 
-    return Ok(util::clean_keys(util::split_keys(&keys_string)));
+    Ok(util::clean_keys(util::split_keys(&keys_string)))
 }
 
 pub fn write_keys(keys: Vec<String>, username: Option<&str>) -> anyhow::Result<()> {
@@ -27,7 +25,7 @@ pub fn write_keys(keys: Vec<String>, username: Option<&str>) -> anyhow::Result<(
 
     info!("Writing keys to {:?}", path);
 
-    if keys.len() == 0 {
+    if keys.is_empty() {
         return Ok(());
     }
 
@@ -41,10 +39,10 @@ pub fn write_keys(keys: Vec<String>, username: Option<&str>) -> anyhow::Result<(
     };
 
     match file.write_all(content.as_bytes()) {
-        Ok(_) => return Ok(()),
+        Ok(_) => Ok(()),
         Err(e) => {
             error!("Writing to file {:?} failed. {}", path, e);
-            return Ok(());
+            Ok(())
         }
     }
 }
@@ -55,16 +53,14 @@ pub fn get_auth_keys_path(user: Option<&str>) -> PathBuf {
         None => dirs::home_dir(),
     };
 
-    let ssh_auth_path = match home {
+    match home {
         Some(path) => path.join(".ssh").join("authorized_keys"),
         None => PathBuf::new(), //TODO find abs path of ssh dir
-    };
-
-    return ssh_auth_path;
+    }
 }
 
 fn get_schedule_path() -> PathBuf {
-    return PathBuf::from("/etc/keysync-schedule");
+    PathBuf::from("/etc/keysync-schedule")
 }
 
 pub fn get_schedule() -> anyhow::Result<Vec<String>> {
@@ -74,11 +70,11 @@ pub fn get_schedule() -> anyhow::Result<Vec<String>> {
     }
 
     let content: String = fs::read_to_string(schedule_path)?;
-    return Ok(content
-        .split("\n")
+    Ok(content
+        .split('\n')
         .filter(|x| !x.trim().is_empty())
         .map(|x| x.to_owned())
-        .collect());
+        .collect())
 }
 
 pub fn write_to_schedule(user: &str, cron: &str, url: &str, username: &str) -> anyhow::Result<()> {
@@ -93,7 +89,7 @@ pub fn write_to_schedule(user: &str, cron: &str, url: &str, username: &str) -> a
         .open(&path)?;
 
     file.write_all(content.as_bytes())?;
-    return Ok(());
+    Ok(())
 }
 
 pub fn create_schedule_if_not_exist() -> anyhow::Result<bool> {
@@ -102,12 +98,12 @@ pub fn create_schedule_if_not_exist() -> anyhow::Result<bool> {
         File::create(schedule_path)?;
         return Ok(true);
     }
-    return Ok(false);
+    Ok(false)
 }
 
 pub fn schedule_last_modified() -> anyhow::Result<FileTime> {
     let metadata = fs::metadata(get_schedule_path()).unwrap();
-    return Ok(FileTime::from_last_modification_time(&metadata));
+    Ok(FileTime::from_last_modification_time(&metadata))
 }
 
 pub fn create_file_for_user(user: Option<&str>) -> anyhow::Result<()> {
@@ -118,7 +114,7 @@ pub fn create_file_for_user(user: Option<&str>) -> anyhow::Result<()> {
     let path = get_auth_keys_path(user);
     create_file(path, ids.0, ids.1)?;
 
-    return Ok(());
+    Ok(())
 }
 
 fn create_file(path: PathBuf, uid: Uid, gid: Gid) -> anyhow::Result<()> {
@@ -131,5 +127,5 @@ fn create_file(path: PathBuf, uid: Uid, gid: Gid) -> anyhow::Result<()> {
         File::create(&path)?;
         unistd::chown(&path, Some(uid), Some(gid))?;
     }
-    return Ok(());
+    Ok(())
 }

@@ -1,4 +1,3 @@
-use anyhow;
 use clap::arg_enum;
 use cron::Schedule;
 use log::{debug, error, info, warn};
@@ -107,8 +106,7 @@ enum Command {
 fn main() -> anyhow::Result<()> {
     // If being run by the service, probably better way to handle this
     // TODO make it better
-    if std::env::args().len() == 2 && std::env::args_os().into_iter().last().unwrap() == "--daemon"
-    {
+    if std::env::args().len() == 2 && std::env::args_os().last().unwrap() == "--daemon" {
         daemon::start()?;
         anyhow::anyhow!("Process should not stop");
     }
@@ -160,7 +158,7 @@ fn main() -> anyhow::Result<()> {
         Command::Job {} => jobs()?,
     };
 
-    return Ok(());
+    Ok(())
 }
 
 /// Gets the keys from a provider
@@ -226,7 +224,7 @@ fn get(
         println!("Found {} new keys", num_keys_to_add);
     }
 
-    return Ok(());
+    Ok(())
 }
 
 fn set(
@@ -304,7 +302,7 @@ fn set(
         println!("Syntax Ok")
     }
 
-    return Ok(());
+    Ok(())
 }
 
 fn jobs() -> anyhow::Result<()> {
@@ -321,25 +319,27 @@ fn jobs() -> anyhow::Result<()> {
             "ID", "User", "Cron", "Url", "Username"
         );
         println!("{:-<90}", "");
-        let mut count: u8 = 0;
-        for job in jobs {
-            count += 1;
-            let data: Vec<&str> = job.split("|").collect();
+        for (i, job) in jobs.iter().enumerate() {
+            let data: Vec<&str> = job.split('|').collect();
             let user: &str = data[0];
             let cron: &str = data[1];
             let url: &str = data[2];
             let username: &str = data[3];
             println!(
                 "{:<5}{:<15}{:<25}{:<30}{:<15}",
-                count, user, cron, url, username
+                i + 1,
+                user,
+                cron,
+                url,
+                username
             );
         }
     }
 
-    return Ok(());
+    Ok(())
 }
 
 fn parse_cron(src: &str) -> Result<String, cron::error::Error> {
     Schedule::from_str(src)?;
-    return Ok(src.to_string());
+    Ok(src.to_string())
 }

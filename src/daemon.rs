@@ -39,7 +39,7 @@ fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
             continue;
         }
 
-        let data: Vec<String> = item.split("|").map(|x| x.to_owned()).collect();
+        let data: Vec<String> = item.split('|').map(|x| x.to_owned()).collect();
         let user: String = data[0].clone();
         let cron: String = data[1].clone();
         let url: Url = Url::parse(&data[2])?;
@@ -70,21 +70,21 @@ fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
         }
     }
 
-    return Ok(sched);
+    Ok(sched)
 }
 
-fn run_job(user: String, url: Url, username: String) -> () {
+fn run_job(user: String, url: Url, username: String) {
     let content = http::get_standard(&username, url);
 
     let clean_content = match content {
         Ok(clean) => clean,
-        Err(_) => return (),
+        Err(_) => return,
     };
 
     let keys = util::split_keys(&clean_content);
     let exist = match file::get_current_keys(Some(&user)) {
         Ok(key) => key,
-        Err(_) => return (),
+        Err(_) => return,
     };
     let keys_to_add: Vec<String> = util::filter_keys(keys, exist);
     let num_keys_to_add: usize = keys_to_add.len();
