@@ -39,7 +39,7 @@ Use nxcloud <subcommand> help for help with that subcommand.
 Examples:  
 `keysync get <username>` Downloads the public keys from github for the username.  
 `keysync get --gitlab <url> <username>` Downloads the public keys from gitlab for the username, a url must be provided or '' for `https://gitlab.com`.  
-`keysync add <user> <username> <schedule>` Adds automatic job for the user, where username is the github or gitlab username.  
+`keysync add <user> <username> <schedule>` Adds automatic job for the user, where username is the Github or Gitlab username.  
 Valid schedules are [Hourly, Daily, Weekly, Monthly, Custom]  
 `keysync add <user> <username> custom -c <cron>` Adds automactic job for user with custom cron schedule.  
 
