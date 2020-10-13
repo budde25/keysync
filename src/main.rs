@@ -151,7 +151,7 @@ fn main() -> anyhow::Result<()> {
             github,
             url,
             launchpad,
-        } => get(username, github, url, launchpad, cli.dry_run)?,
+        } => get(username, github, url, launchpad, None, cli.dry_run)?,
         Command::Set {
             user,
             username,
@@ -184,6 +184,7 @@ fn get(
     mut github: bool,
     gitlab: Option<String>,
     launchpad: bool,
+    user: Option<&str>,
     dry_run: bool,
 ) -> anyhow::Result<()> {
     info!("Getting data for {}", username);
@@ -214,12 +215,12 @@ fn get(
         None => (),
     }
 
-    if Uid::current().is_root() {
+    if user.is_none() && Uid::current().is_root() {
         warn!("Running get as root downloads the keys to the root users authorized keys file, which might not be intended");
     }
 
     if !dry_run {
-        file::create_file_for_user(None)?;
+        file::create_file_for_user(user)?;
     }
 
     let mut keys: Vec<String> = vec![];
@@ -229,11 +230,11 @@ fn get(
         keys.append(&mut util::split_keys(&response));
     }
 
-    let keys_to_add: Vec<String> = util::filter_keys(keys, file::get_current_keys(None)?);
+    let keys_to_add: Vec<String> = util::filter_keys(keys, file::get_current_keys(user)?);
     let num_keys_to_add: usize = keys_to_add.len();
 
     if !dry_run {
-        file::write_keys(keys_to_add, None)?;
+        file::write_keys(keys_to_add, user)?;
         println!("Added {} new keys", num_keys_to_add);
     } else {
         println!("Found {} new keys", num_keys_to_add);
@@ -321,7 +322,7 @@ fn set(
         println!("Syntax Ok");
     }
     if now {
-        get(username, github, gitlab, launchpad, dry_run)?;
+        get(username, github, gitlab, launchpad, Some(&user), dry_run)?;
     }
 
     Ok(())
