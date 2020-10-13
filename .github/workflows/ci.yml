@@ -4,10 +4,9 @@ on:
       - main
     tags:
       - v[0-9]+.*
-      - testing-ci.*
   pull_request:
 
-name: Continuous Integration / Continous Deployment
+name: CI/CD
 
 jobs:
   check:

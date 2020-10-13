@@ -11,12 +11,15 @@ Note: Automatic jobs will fail if the computer goes to sleep/hibernate. The syst
 **Warning** If you're Github or Gitlab is comprmised an attacker can upload their keys to gain access to you're computer. For security please do not set this program up for a root user, you're just asking for trouble.
 
 ## Install
+
+Install deb from releases.
 `cargo install keysync` not reccomended, cannot run as daemon.  
 More releases coming soon.
 
 ## Usage
+
 ```
-SSH Key Sync 0.1.1
+SSH Key Sync 0.1.2
 A command line client and service for keeping SHH keys up to date with a list Ex: Github.
 
 USAGE:
@@ -34,7 +37,8 @@ SUBCOMMANDS:
     jobs    Current enabled jobs
     set     Add an automatic job
 ```
-Use nxcloud <subcommand> help for help with that subcommand.
+
+Use `keysync <subcommand> help` for help with that subcommand.
   
 Examples:  
 `keysync get <username>` Downloads the public keys from github for the username.  
@@ -44,23 +48,29 @@ Valid schedules are [Hourly, Daily, Weekly, Monthly, Custom]
 `keysync add <user> <username> custom -c <cron>` Adds automactic job for user with custom cron schedule.  
 
 ## Setup
+
 * Install [Rust](https://www.rust-lang.org/tools/install)  
 * Clone repository
 
 ### Compile and Run
+
 `cargo build` Will build an executable.  
 `cargo run -- <args>` Will build and run an executable.  
 `cargo doc` Will build the documentation.  
 
 ### Testing
+
 `cargo test` Will run all the unit tests except for the ignored ones, ignored because they use network and won't pass 100% reliably.  
 `cargo test -- --ignored` Will run all the tests, some may fail depending on server response time and your internet capabilities.  
 
 ## Built With
+
 [Rust](https://www.rust-lang.org/)
 
 ## License
+
 [GNU General Public License v3.0](https://github.com/budde25/ssh-key-sync/blob/master/LICENSE)  
 
 ## Author
+
 Ethan Budd

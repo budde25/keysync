@@ -1,6 +1,6 @@
 [package]
 name = "keysync"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Ethan Budd <budde25@protonmail.com>"]
 edition = "2018"
 description = "A utility to sync local authorized_keys file updated with your with Github and Gitlab public keys"
@@ -37,5 +37,5 @@ filetime = "0.2"
 cron = "0.6"
 env_logger = "0.7"
 log = "0.4"
-nix = "0.18"
+nix = "0.19"
 clap = "2.33"
