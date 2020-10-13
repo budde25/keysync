@@ -38,10 +38,10 @@ fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
             continue;
         }
 
-        let data: Vec<String> = item.split('|').map(|x| x.to_owned()).collect();
-        let user: String = data[0].clone();
-        let cron: String = data[1].clone();
-        let url: String = data[2].clone();
+        let data: Vec<&str> = item.split('|').collect();
+        let user: String = data[0].to_string();
+        let cron: String = data[1].to_string();
+        let url: String = data[2].to_string();
 
         match cron.parse() {
             Ok(valid) => {
