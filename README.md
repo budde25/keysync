@@ -1,6 +1,6 @@
 # keysync - An SSH syncing utility and service
 
-[![Build Status](https://travis-ci.com/budde25/ssh-key-sync.svg?branch=main)](https://travis-ci.com/budde25/ssh-key-sync)
+![CI/CD](https://github.com/budde25/ssh-key-sync/workflows/CI/CD/badge.svg)
 [![Crates.io](https://img.shields.io/crates/v/keysync)](https://crates.io/crates/keysync)
 [![Crates.io](https://img.shields.io/crates/d/keysync)](https://crates.io/crates/keysync)
 
@@ -12,9 +12,9 @@ Note: Automatic jobs will fail if the computer goes to sleep/hibernate. The syst
 
 ## Install
 
-Install deb from releases.
+Install deb from releases.  
 `cargo install keysync` not reccomended, cannot run as daemon.  
-More releases coming soon.
+More releases coming soon.  
 
 ## Usage
 
