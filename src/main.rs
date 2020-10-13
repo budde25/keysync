@@ -326,28 +326,16 @@ fn jobs() -> anyhow::Result<()> {
         if total_jobs == 1 { "" } else { "s" }
     );
     if total_jobs > 0 {
-        println!(
-            "{:<5}{:<15}{:<25}{:<30}{:<15}",
-            "ID", "User", "Cron", "Url", "Username"
-        );
+        println!("{:<5}{:<15}{:<25}{:<45}", "ID", "User", "Cron", "Url");
         println!("{:-<90}", "");
         for (i, job) in jobs.iter().enumerate() {
             let data: Vec<&str> = job.split('|').collect();
             let user: &str = data[0];
             let cron: &str = data[1];
             let url: &str = data[2];
-            let username: &str = data[3];
-            println!(
-                "{:<5}{:<15}{:<25}{:<30}{:<15}",
-                i + 1,
-                user,
-                cron,
-                url,
-                username
-            );
+            println!("{:<5}{:<15}{:<25}{:<40}", i + 1, user, cron, url);
         }
     }
-
     Ok(())
 }
 
