@@ -119,7 +119,7 @@ jobs:
 
   release-cargo:
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/')
-    name: Pubish Cargo
+    name: Publish Cargo
     needs: [check, test]
     runs-on: ubuntu-latest
     
