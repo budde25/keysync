@@ -131,4 +131,4 @@ jobs:
           toolchain: stable
           override: true
       - name: Publish
-        run: cargo publish --token {{ secrets.CRATES_TOKEN }}
+        run: cargo publish --token ${{ secrets.CRATES_TOKEN }}
