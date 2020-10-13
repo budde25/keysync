@@ -33,16 +33,16 @@ pub fn write_keys(keys: Vec<String>, username: Option<&str>) -> anyhow::Result<(
     let mut file: File = match fs::OpenOptions::new().write(true).append(true).open(&path) {
         Ok(f) => f,
         Err(e) => {
-            error!("Opening file {:?} failed. {}", path, e);
-            return Ok(());
+            error!("Opening file {:?} failed", path);
+            return Err(anyhow::anyhow!("{}", e));
         }
     };
 
     match file.write_all(content.as_bytes()) {
         Ok(_) => Ok(()),
         Err(e) => {
-            error!("Writing to file {:?} failed. {}", path, e);
-            Ok(())
+            error!("Writing to file {:?} failed", path);
+            return Err(anyhow::anyhow!("{}", e));
         }
     }
 }
