@@ -3,7 +3,6 @@ use job_scheduler::Job;
 use job_scheduler::JobScheduler;
 use log::{debug, error};
 use std::{thread, time};
-use url::Url;
 
 use super::file;
 use super::util;
@@ -42,8 +41,7 @@ fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
         let data: Vec<String> = item.split('|').map(|x| x.to_owned()).collect();
         let user: String = data[0].clone();
         let cron: String = data[1].clone();
-        let url: Url = Url::parse(&data[2])?;
-        let username: String = data[3].clone();
+        let url: String = data[2].clone();
 
         match cron.parse() {
             Ok(valid) => {
@@ -59,7 +57,7 @@ fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
                 };
 
                 sched.add(Job::new(valid, move || {
-                    run_job(user.to_owned(), url.to_owned(), username.to_owned())
+                    run_job(user.to_owned(), url.to_owned())
                 }));
                 println!("Scheduled item {}", item);
             }
@@ -73,15 +71,16 @@ fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
     Ok(sched)
 }
 
-fn run_job(user: String, url: Url, username: String) {
-    let content = http::get_standard(&username, url);
-
-    let clean_content = match content {
-        Ok(clean) => clean,
-        Err(_) => return,
+fn run_job(user: String, url: String) {
+    let content = match http::get_keys(&url) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("{}", e);
+            return;
+        }
     };
 
-    let keys = util::split_keys(&clean_content);
+    let keys = util::split_keys(&content);
     let exist = match file::get_current_keys(Some(&user)) {
         Ok(key) => key,
         Err(_) => return,

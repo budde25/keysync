@@ -1,6 +1,6 @@
 use clap::arg_enum;
 use cron::Schedule;
-use log::{debug, error, info, warn};
+use log::{error, info, warn};
 use nix::unistd::Uid;
 use std::str::FromStr;
 use structopt::StructOpt;
@@ -59,8 +59,12 @@ enum Command {
         github: bool,
 
         /// Retrive from gitlab, requires url
-        #[structopt(name = "url", short = "l", long = "gitlab")]
+        #[structopt(name = "url", short = "h", long = "gitlab")]
         url: Option<String>,
+
+        /// Retrive from launchpad
+        #[structopt(short, long)]
+        launchpad: bool,
     },
 
     /// Add an automatic job
@@ -82,8 +86,12 @@ enum Command {
         #[structopt(short, long)]
         github: bool,
 
+        /// Retrive from launchpad
+        #[structopt(short, long)]
+        launchpad: bool,
+
         /// Retrive from gitlab, requires url
-        #[structopt(name = "url", short = "l", long = "gitlab")]
+        #[structopt(name = "url", short = "h", long = "gitlab")]
         url: Option<String>,
 
         /// A schedule in cron format Ex: '* * * * * *'
@@ -138,12 +146,14 @@ fn main() -> anyhow::Result<()> {
             username,
             github,
             url,
-        } => get(username, github, url, cli.dry_run)?,
+            launchpad,
+        } => get(username, github, url, launchpad, cli.dry_run)?,
         Command::Set {
             user,
             username,
             schedule,
             github,
+            launchpad,
             url,
             expression,
         } => set(
@@ -151,6 +161,7 @@ fn main() -> anyhow::Result<()> {
             username,
             github,
             url,
+            launchpad,
             schedule,
             expression,
             cli.dry_run,
@@ -166,13 +177,35 @@ fn get(
     username: String,
     mut github: bool,
     gitlab: Option<String>,
+    launchpad: bool,
     dry_run: bool,
 ) -> anyhow::Result<()> {
     info!("Getting data for {}", username);
 
     // if none are selected default to github
-    if !github && gitlab.is_none() {
+    if !github && !launchpad && gitlab.is_none() {
         github = true;
+    }
+
+    let mut urls: Vec<String> = vec![];
+    if github {
+        urls.push(http::get_github(&username));
+    }
+    if launchpad {
+        urls.push(http::get_lanchpad(&username));
+    }
+    match gitlab {
+        Some(mut url) => {
+            if url.trim().is_empty() {
+                urls.push(http::get_gitlab(&username, None))
+            } else {
+                if !url.contains("http") {
+                    url = format!("{}{}", "https://", url);
+                }
+                urls.push(http::get_gitlab(&username, Some(Url::parse(&url)?)));
+            }
+        }
+        None => (),
     }
 
     if Uid::current().is_root() {
@@ -183,34 +216,10 @@ fn get(
         file::create_file_for_user(None)?;
     }
 
-    debug!(
-        "github: {}, gitlab: {}, username {}",
-        github,
-        gitlab.is_some(),
-        username,
-    );
-
     let mut keys: Vec<String> = vec![];
 
-    if github {
-        let url = Url::parse(http::GITHUB_URL)?;
-        let response = http::get_standard(&username, url)?;
-        keys.append(&mut util::split_keys(&response));
-    }
-
-    if let Some(mut url) = gitlab {
-        // Default url for empty string
-        if url.trim().is_empty() {
-            url = http::GITLAB_URL.to_string();
-        }
-
-        // Adds https but allows http if specified
-        if !url.contains("http") {
-            url = format!("{}{}", "https://", url);
-        }
-
-        let gitlab_url: Url = Url::parse(&url)?;
-        let response = http::get_standard(&username, gitlab_url)?;
+    for url in urls {
+        let response = http::get_keys(&url)?;
         keys.append(&mut util::split_keys(&response));
     }
 
@@ -232,6 +241,7 @@ fn set(
     username: String,
     mut github: bool,
     gitlab: Option<String>,
+    launchpad: bool,
     schedule: DefaultCron,
     expression: Option<String>,
     dry_run: bool,
@@ -246,13 +256,29 @@ fn set(
     }
 
     // if none are selected default to github
-    if !github && gitlab.is_none() {
+    if !github && !launchpad && gitlab.is_none() {
         github = true;
     }
 
-    if github && gitlab.is_some() {
-        error!("Must pick gitlab or github");
-        return Ok(());
+    let mut urls: Vec<String> = vec![];
+    if github {
+        urls.push(http::get_github(&username));
+    }
+    if launchpad {
+        urls.push(http::get_lanchpad(&username));
+    }
+    match gitlab {
+        Some(mut url) => {
+            if url.trim().is_empty() {
+                urls.push(http::get_gitlab(&username, None))
+            } else {
+                if !url.contains("http") {
+                    url = format!("{}{}", "https://", url);
+                }
+                urls.push(http::get_gitlab(&username, Some(Url::parse(&url)?)));
+            }
+        }
+        None => (),
     }
 
     let cron_result: Result<String, cron::error::Error> = match schedule {
@@ -277,27 +303,13 @@ fn set(
         }
     };
 
-    let url_to_add: String;
-    if github {
-        url_to_add = http::GITHUB_URL.to_owned();
-    } else if let Some(u) = gitlab {
-        // Default url for empty string
-        if u.trim().is_empty() {
-            url_to_add = http::GITLAB_URL.to_owned();
-        } else {
-            url_to_add = u;
-        }
-    } else {
-        url_to_add = http::GITLAB_URL.to_owned();
-    }
-
-    let url_as_url: Url = Url::parse(&url_to_add)?;
-
     if !dry_run {
-        match file::write_to_schedule(&user, &cron, &url_as_url.to_string(), &username) {
-            Ok(_) => println!("Successfully added import schedule"),
-            Err(e) => error!("{}", e),
-        };
+        for url in urls {
+            match file::write_to_schedule(&user, &cron, &url) {
+                Ok(_) => println!("Successfully added import schedule"),
+                Err(e) => error!("{}", e),
+            };
+        }
     } else {
         println!("Syntax Ok")
     }

@@ -77,12 +77,12 @@ pub fn get_schedule() -> anyhow::Result<Vec<String>> {
         .collect())
 }
 
-pub fn write_to_schedule(user: &str, cron: &str, url: &str, username: &str) -> anyhow::Result<()> {
+pub fn write_to_schedule(user: &str, cron: &str, url: &str) -> anyhow::Result<()> {
     let path = get_schedule_path();
 
     info!("Writing schedule to {:?}", path);
 
-    let content: String = format!("{}|{}|{}|{}\n", user, cron, url, username);
+    let content: String = format!("{}|{}|{}\n", user, cron, url);
     let mut file: File = fs::OpenOptions::new()
         .write(true)
         .append(true)
