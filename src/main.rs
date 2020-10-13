@@ -90,9 +90,13 @@ enum Command {
         #[structopt(short, long)]
         launchpad: bool,
 
-        /// Retrive from gitlab, requires url
+        /// Retrive from gitlab, requires url or ''(empty) for default
         #[structopt(name = "url", short = "h", long = "gitlab")]
         url: Option<String>,
+
+        /// Also runs in addition to adding to schedule
+        #[structopt(short, long)]
+        now: bool,
 
         /// A schedule in cron format Ex: '* * * * * *'
         #[structopt(
@@ -156,6 +160,7 @@ fn main() -> anyhow::Result<()> {
             launchpad,
             url,
             expression,
+            now,
         } => set(
             user,
             username,
@@ -165,6 +170,7 @@ fn main() -> anyhow::Result<()> {
             schedule,
             expression,
             cli.dry_run,
+            now,
         )?,
         Command::Job {} => jobs()?,
     };
@@ -245,6 +251,7 @@ fn set(
     schedule: DefaultCron,
     expression: Option<String>,
     dry_run: bool,
+    now: bool,
 ) -> anyhow::Result<()> {
     if !Uid::current().is_root() {
         warn!("Adding new jobs requires write access to /etc/, you will probably need to run this as root");
@@ -267,7 +274,7 @@ fn set(
     if launchpad {
         urls.push(http::get_lanchpad(&username));
     }
-    match gitlab {
+    match gitlab.clone() {
         Some(mut url) => {
             if url.trim().is_empty() {
                 urls.push(http::get_gitlab(&username, None))
@@ -311,7 +318,10 @@ fn set(
             };
         }
     } else {
-        println!("Syntax Ok")
+        println!("Syntax Ok");
+    }
+    if now {
+        get(username, github, gitlab, launchpad, dry_run)?;
     }
 
     Ok(())
