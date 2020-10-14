@@ -4,7 +4,7 @@ use log::{error, info, warn};
 use nix::unistd::Uid;
 use std::str::FromStr;
 use structopt::StructOpt;
-use url::{Url, ParseError};
+use url::{ParseError, Url};
 
 mod daemon;
 mod file;
@@ -255,7 +255,7 @@ fn set(
             Some(exp) => parse_cron(&exp),
             None => {
                 error!("Cron expression must be defined with 'Custom' Schedule");
-                return Ok();
+                return Ok(());
             }
         },
     };
@@ -297,10 +297,7 @@ fn jobs() -> anyhow::Result<()> {
         println!("{:<5}{:<15}{:<25}{:<45}", "ID", "User", "Cron", "Url");
         println!("{:-<90}", "");
         for (i, job) in jobs.iter().enumerate() {
-            let data: Vec<&str> = job.split('|').collect();
-            let user: &str = data[0];
-            let cron: &str = data[1];
-            let url: &str = data[2];
+            let (user, cron, url) = util::parse_schedule(job);
             println!("{:<5}{:<15}{:<25}{:<40}", i + 1, user, cron, url);
         }
     }

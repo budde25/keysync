@@ -65,6 +65,8 @@ fn get_schedule_path() -> PathBuf {
 
 pub fn get_schedule() -> anyhow::Result<Vec<String>> {
     let schedule_path = get_schedule_path();
+
+    // file doesn't exist therefore has no values
     if !schedule_path.is_file() {
         return Ok(vec![]);
     }
