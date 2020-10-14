@@ -54,15 +54,15 @@ enum Command {
         #[structopt(name = "username")]
         username: String,
 
-        /// Retrieve from github (default)
+        /// Retrieve from GitHub (default)
         #[structopt(short, long)]
         github: bool,
 
-        /// Retrieve from gitlab, requires url
+        /// Retrieve from GitLab [requires URL]
         #[structopt(name = "url", short = "h", long = "gitlab", parse(try_from_str = parse_url))]
         url: Option<Url>,
 
-        /// Retrieve from launchpad
+        /// Retrieve from Launchpad
         #[structopt(short, long)]
         launchpad: bool,
     },
@@ -82,15 +82,15 @@ enum Command {
         #[structopt(possible_values = &DefaultCron::variants(), case_insensitive = true)]
         schedule: DefaultCron,
 
-        /// Retrieve from github (default)
+        /// Retrieve from GitGub (default)
         #[structopt(short, long)]
         github: bool,
 
-        /// Retrieve from launchpad
+        /// Retrieve from Launchpad
         #[structopt(short, long)]
         launchpad: bool,
 
-        /// Retrieve from gitlab, requires url or ''(empty) for default
+        /// Retrieve from GitLab [requires URL]
         #[structopt(name = "url", short = "h", long = "gitlab", parse(try_from_str = parse_url))]
         url: Option<Url>,
 
@@ -110,9 +110,13 @@ enum Command {
         expression: Option<String>,
     },
 
-    // Remove a job by ID
+    /// Remove job(s) by ID
     #[structopt(name = "remove")]
-    Remove {},
+    Remove {
+        /// Job IDs to remove
+        #[structopt()]
+        id: Vec<usize>,
+    },
 
     /// list enabled jobs
     #[structopt(name = "jobs")]
@@ -180,7 +184,7 @@ fn main() -> anyhow::Result<()> {
             now,
         )?,
         Command::Job {} => jobs()?,
-        Command::Remove {} => (),
+        Command::Remove { id } => remove(id)?,
     };
 
     Ok(())
@@ -302,6 +306,10 @@ fn jobs() -> anyhow::Result<()> {
         }
     }
     Ok(())
+}
+
+fn remove(ids: Vec<usize>) -> anyhow::Result<()> {
+    return Ok(());
 }
 
 fn parse_cron(src: &str) -> Result<String, cron::error::Error> {
