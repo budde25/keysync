@@ -4,7 +4,7 @@ use log::{error, info, warn};
 use nix::unistd::Uid;
 use std::str::FromStr;
 use structopt::StructOpt;
-use url::Url;
+use url::{Url, ParseError};
 
 mod daemon;
 mod file;
@@ -59,8 +59,8 @@ enum Command {
         github: bool,
 
         /// Retrieve from gitlab, requires url
-        #[structopt(name = "url", short = "h", long = "gitlab")]
-        url: Option<String>,
+        #[structopt(name = "url", short = "h", long = "gitlab", parse(try_from_str = parse_url))]
+        url: Option<Url>,
 
         /// Retrieve from launchpad
         #[structopt(short, long)]
@@ -91,8 +91,8 @@ enum Command {
         launchpad: bool,
 
         /// Retrieve from gitlab, requires url or ''(empty) for default
-        #[structopt(name = "url", short = "h", long = "gitlab")]
-        url: Option<String>,
+        #[structopt(name = "url", short = "h", long = "gitlab", parse(try_from_str = parse_url))]
+        url: Option<Url>,
 
         /// Also runs in addition to adding to schedule
         #[structopt(short, long)]
@@ -128,7 +128,6 @@ fn main() -> anyhow::Result<()> {
     }
 
     //Opt::clap().gen_completions(env!("CARGO_PKG_NAME"), Shell::Bash, "target");
-
     let cli: Opt = Opt::from_args();
 
     // Sets the log level
@@ -190,40 +189,13 @@ fn main() -> anyhow::Result<()> {
 /// Gets the keys from a provider
 fn get(
     username: String,
-    mut github: bool,
-    gitlab: Option<String>,
+    github: bool,
+    gitlab: Option<Url>,
     launchpad: bool,
     user: Option<&str>,
     dry_run: bool,
 ) -> anyhow::Result<()> {
     info!("Getting data for {}", username);
-
-    // if none are selected default to github
-    if !github && !launchpad && gitlab.is_none() {
-        github = true;
-    }
-
-    let mut urls: Vec<String> = vec![];
-    if github {
-        urls.push(http::get_github(&username));
-    }
-    if launchpad {
-        urls.push(http::get_launchpad(&username));
-    }
-    match gitlab {
-        Some(mut url) => {
-            if url.trim().is_empty() {
-                urls.push(http::get_gitlab(&username, None))
-            } else {
-                if !url.contains("http") {
-                    url = format!("{}{}", "https://", url);
-                }
-                urls.push(http::get_gitlab(&username, Some(Url::parse(&url)?)));
-            }
-        }
-        None => (),
-    }
-
     if user.is_none() && Uid::current().is_root() {
         warn!("Running get as root downloads the keys to the root users authorized keys file, which might not be intended");
     }
@@ -233,7 +205,7 @@ fn get(
     }
 
     let mut keys: Vec<String> = vec![];
-
+    let urls: Vec<String> = util::create_urls(&username, github, launchpad, gitlab);
     for url in urls {
         let response = http::get_keys(&url)?;
         keys.append(&mut util::split_keys(&response));
@@ -255,8 +227,8 @@ fn get(
 fn set(
     user: String,
     username: String,
-    mut github: bool,
-    gitlab: Option<String>,
+    github: bool,
+    gitlab: Option<Url>,
     launchpad: bool,
     schedule: DefaultCron,
     expression: Option<String>,
@@ -272,31 +244,7 @@ fn set(
         file::create_schedule_if_not_exist()?;
     }
 
-    // if none are selected default to github
-    if !github && !launchpad && gitlab.is_none() {
-        github = true;
-    }
-
-    let mut urls: Vec<String> = vec![];
-    if github {
-        urls.push(http::get_github(&username));
-    }
-    if launchpad {
-        urls.push(http::get_launchpad(&username));
-    }
-    match gitlab.clone() {
-        Some(mut url) => {
-            if url.trim().is_empty() {
-                urls.push(http::get_gitlab(&username, None))
-            } else {
-                if !url.contains("http") {
-                    url = format!("{}{}", "https://", url);
-                }
-                urls.push(http::get_gitlab(&username, Some(Url::parse(&url)?)));
-            }
-        }
-        None => (),
-    }
+    let urls: Vec<String> = util::create_urls(&username, github, launchpad, gitlab.clone());
 
     let cron_result: Result<String, cron::error::Error> = match schedule {
         DefaultCron::Hourly => parse_cron("@hourly"),
@@ -307,7 +255,7 @@ fn set(
             Some(exp) => parse_cron(&exp),
             None => {
                 error!("Cron expression must be defined with 'Custom' Schedule");
-                return Ok(());
+                return Ok();
             }
         },
     };
@@ -362,4 +310,12 @@ fn jobs() -> anyhow::Result<()> {
 fn parse_cron(src: &str) -> Result<String, cron::error::Error> {
     Schedule::from_str(src)?;
     Ok(src.to_string())
+}
+
+fn parse_url(src: &str) -> Result<Url, ParseError> {
+    if src.contains("http") {
+        Url::parse(src)
+    } else {
+        Url::parse(&("https://".to_owned() + src))
+    }
 }
