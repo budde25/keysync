@@ -30,7 +30,7 @@ pub fn start() -> anyhow::Result<()> {
 }
 
 fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
-    println!("Schduling jobs");
+    println!("Scheduling jobs");
     let schedule: Vec<String> = file::get_schedule()?;
     for item in schedule {
         // Skips any empty lines

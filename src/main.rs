@@ -33,7 +33,7 @@ struct Opt {
     #[structopt(short, long, parse(from_occurrences))]
     verbose: u8,
 
-    /// Runs the commands without commiting the changes
+    /// Runs the commands without committing the changes
     #[structopt(short, long)]
     dry_run: bool,
 
@@ -47,22 +47,22 @@ struct Opt {
     about = "A command line client and service for keeping SHH keys up to date with a list Ex: Github."
 )]
 enum Command {
-    /// The username to fetch
+    /// Retrieve a key online
     #[structopt(name = "get")]
     Get {
-        /// The username of the account to get keys from
+        /// The username of the account
         #[structopt(name = "username")]
         username: String,
 
-        /// Retrive from github (default)
+        /// Retrieve from github (default)
         #[structopt(short, long)]
         github: bool,
 
-        /// Retrive from gitlab, requires url
+        /// Retrieve from gitlab, requires url
         #[structopt(name = "url", short = "h", long = "gitlab")]
         url: Option<String>,
 
-        /// Retrive from launchpad
+        /// Retrieve from launchpad
         #[structopt(short, long)]
         launchpad: bool,
     },
@@ -70,7 +70,7 @@ enum Command {
     /// Add an automatic job
     #[structopt(name = "set")]
     Set {
-        /// Thelocal user who get the keys
+        /// The local user account
         #[structopt(name = "user")]
         user: String,
 
@@ -78,19 +78,19 @@ enum Command {
         #[structopt(name = "username")]
         username: String,
 
-        /// Premade schedules
+        /// Default available schedules
         #[structopt(possible_values = &DefaultCron::variants(), case_insensitive = true)]
         schedule: DefaultCron,
 
-        /// Retrive from github (default)
+        /// Retrieve from github (default)
         #[structopt(short, long)]
         github: bool,
 
-        /// Retrive from launchpad
+        /// Retrieve from launchpad
         #[structopt(short, long)]
         launchpad: bool,
 
-        /// Retrive from gitlab, requires url or ''(empty) for default
+        /// Retrieve from gitlab, requires url or ''(empty) for default
         #[structopt(name = "url", short = "h", long = "gitlab")]
         url: Option<String>,
 
@@ -110,7 +110,11 @@ enum Command {
         expression: Option<String>,
     },
 
-    /// Current enabled jobs
+    // Remove a job by ID
+    #[structopt(name = "remove")]
+    Remove {},
+
+    /// list enabled jobs
     #[structopt(name = "jobs")]
     Job {},
 }
@@ -131,19 +135,23 @@ fn main() -> anyhow::Result<()> {
     match cli.verbose {
         0 => env_logger::builder()
             .filter_level(log::LevelFilter::Warn)
+            .format_timestamp(None)
             .init(),
         1 => env_logger::builder()
             .filter_level(log::LevelFilter::Info)
+            .format_timestamp(None)
             .init(),
         2 => env_logger::builder()
             .filter_level(log::LevelFilter::Debug)
+            .format_timestamp(None)
             .init(),
         _ => env_logger::builder()
             .filter_level(log::LevelFilter::Trace)
+            .format_timestamp(None)
             .init(),
     };
 
-    info!("Logger has been intaialized");
+    info!("Logger has been initialized");
 
     match cli.cmd {
         Command::Get {
@@ -173,6 +181,7 @@ fn main() -> anyhow::Result<()> {
             now,
         )?,
         Command::Job {} => jobs()?,
+        Command::Remove {} => (),
     };
 
     Ok(())
@@ -199,7 +208,7 @@ fn get(
         urls.push(http::get_github(&username));
     }
     if launchpad {
-        urls.push(http::get_lanchpad(&username));
+        urls.push(http::get_launchpad(&username));
     }
     match gitlab {
         Some(mut url) => {
@@ -273,7 +282,7 @@ fn set(
         urls.push(http::get_github(&username));
     }
     if launchpad {
-        urls.push(http::get_lanchpad(&username));
+        urls.push(http::get_launchpad(&username));
     }
     match gitlab.clone() {
         Some(mut url) => {

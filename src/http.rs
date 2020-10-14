@@ -7,7 +7,7 @@ use url::Url;
 
 pub const GITHUB_URL: &str = "https://github.com/";
 pub const GITLAB_URL: &str = "https://gitlab.com/";
-pub const LAUCHPAD_URL: &str = "https://launchpad.net/";
+pub const LAUNCHPAD_URL: &str = "https://launchpad.net/";
 
 /// creates the client
 fn get_client() -> Result<Client, Error> {
@@ -40,8 +40,8 @@ pub fn get_gitlab(username: &str, url: Option<Url>) -> String {
     }
 }
 
-pub fn get_lanchpad(username: &str) -> String {
-    format!("{}~{}/+sshkeys", LAUCHPAD_URL, username)
+pub fn get_launchpad(username: &str) -> String {
+    format!("{}~{}/+sshkeys", LAUNCHPAD_URL, username)
 }
 
 // TESTS
@@ -96,7 +96,7 @@ mod tests {
             "https://gitlab.cs.wisc.edu/budde25.keys"
         );
         assert_eq!(
-            &get_lanchpad("budde25"),
+            &get_launchpad("budde25"),
             "https://launchpad.net/~budde25/+sshkeys"
         );
     }

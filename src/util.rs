@@ -16,7 +16,7 @@ pub fn filter_keys(to_add: Vec<String>, exist: Vec<String>) -> Vec<String> {
     to_add
         .iter()
         .filter(|x| !exist.contains(x))
-        .map(|x| x.to_owned() + " # ssh-import keysync")
+        .map(|x| x.to_owned() + " #ssh-import keysync")
         .collect()
 }
 
