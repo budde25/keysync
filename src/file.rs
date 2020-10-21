@@ -59,52 +59,12 @@ pub fn get_auth_keys_path(user: Option<&str>) -> PathBuf {
     }
 }
 
-fn get_schedule_path() -> PathBuf {
-    PathBuf::from("/etc/keysync-schedule")
-}
-
-pub fn get_schedule() -> anyhow::Result<Vec<String>> {
-    let schedule_path = get_schedule_path();
-
-    // file doesn't exist therefore has no values
-    if !schedule_path.is_file() {
-        return Ok(vec![]);
-    }
-
-    let content: String = fs::read_to_string(schedule_path)?;
-    Ok(content
-        .split('\n')
-        .filter(|x| !x.trim().is_empty())
-        .map(|x| x.to_owned())
-        .collect())
-}
-
-pub fn write_to_schedule(user: &str, cron: &str, url: &str) -> anyhow::Result<()> {
-    let path = get_schedule_path();
-
-    info!("Writing schedule to {:?}", path);
-
-    let content: String = format!("{}|{}|{}\n", user, cron, url);
-    let mut file: File = fs::OpenOptions::new()
-        .write(true)
-        .append(true)
-        .open(&path)?;
-
-    file.write_all(content.as_bytes())?;
-    Ok(())
-}
-
-pub fn create_schedule_if_not_exist() -> anyhow::Result<bool> {
-    let schedule_path: PathBuf = get_schedule_path();
-    if !schedule_path.is_file() {
-        File::create(schedule_path)?;
-        return Ok(true);
-    }
-    Ok(false)
+pub fn get_schedule_path() -> PathBuf {
+    PathBuf::from("/usr/share/keysync/schedule.db")
 }
 
 pub fn schedule_last_modified() -> anyhow::Result<FileTime> {
-    let metadata = fs::metadata(get_schedule_path()).unwrap();
+    let metadata = fs::metadata(get_schedule_path())?;
     Ok(FileTime::from_last_modification_time(&metadata))
 }
 

@@ -7,6 +7,7 @@ use structopt::StructOpt;
 use url::{ParseError, Url};
 
 mod daemon;
+mod db;
 mod file;
 mod http;
 mod util;
@@ -115,7 +116,7 @@ enum Command {
     Remove {
         /// Job IDs to remove
         #[structopt()]
-        id: Vec<usize>,
+        id: Vec<i32>,
     },
 
     /// list enabled jobs
@@ -240,12 +241,11 @@ fn set(
     now: bool,
 ) -> anyhow::Result<()> {
     if !Uid::current().is_root() {
-        warn!("Adding new jobs requires write access to /etc/, you will probably need to run this as root");
+        warn!("Adding new jobs requires write access, you will probably need to run this as root");
     }
 
     if !dry_run {
         file::create_file_for_user(Some(&user))?;
-        file::create_schedule_if_not_exist()?;
     }
 
     let urls: Vec<String> = util::create_urls(&username, github, launchpad, gitlab.clone());
@@ -274,7 +274,7 @@ fn set(
 
     if !dry_run {
         for url in urls {
-            match file::write_to_schedule(&user, &cron, &url) {
+            match db::add_schedule(user.clone(), cron.clone(), url) {
                 Ok(_) => println!("Successfully added import schedule"),
                 Err(e) => error!("{}", e),
             };
@@ -282,6 +282,7 @@ fn set(
     } else {
         println!("Syntax Ok");
     }
+
     if now {
         get(username, github, gitlab, launchpad, Some(&user), dry_run)?;
     }
@@ -290,7 +291,7 @@ fn set(
 }
 
 fn jobs() -> anyhow::Result<()> {
-    let jobs = file::get_schedule()?;
+    let jobs: Vec<db::Schedule> = db::get_schedule()?;
     let total_jobs = jobs.len();
     println!(
         "Found {} job{}",
@@ -300,15 +301,23 @@ fn jobs() -> anyhow::Result<()> {
     if total_jobs > 0 {
         println!("{:<5}{:<15}{:<25}{:<45}", "ID", "User", "Cron", "Url");
         println!("{:-<90}", "");
-        for (i, job) in jobs.iter().enumerate() {
-            let (user, cron, url) = util::parse_schedule(job);
-            println!("{:<5}{:<15}{:<25}{:<40}", i + 1, user, cron, url);
+        for job  in jobs {
+            println!("{:<5}{:<15}{:<25}{:<40}", job.id, job.user, job.cron, job.url);
         }
     }
     Ok(())
 }
 
-fn remove(ids: Vec<usize>) -> anyhow::Result<()> {
+fn remove(ids: Vec<i32>) -> anyhow::Result<()> {
+    if !Uid::current().is_root() {
+        warn!("Adding new jobs requires write access, you will probably need to run this as root");
+    }
+
+    for id in ids {
+        db::delete_schedule(id)?;
+        println!("Removed job with id: {}", id);
+    }
+
     return Ok(());
 }
 

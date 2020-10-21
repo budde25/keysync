@@ -63,12 +63,6 @@ pub fn create_urls(
     urls
 }
 
-// Returns a tuple of the parsed schedule
-pub fn parse_schedule(line: &str) -> (String, String, String) {
-    let options: Vec<String> = line.split('|').map(|x| x.to_owned()).collect();
-    (options[0].clone(), options[1].clone(), options[2].clone())
-}
-
 // TESTS
 #[cfg(test)]
 mod tests {
