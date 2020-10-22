@@ -301,8 +301,11 @@ fn jobs() -> anyhow::Result<()> {
     if total_jobs > 0 {
         println!("{:<5}{:<15}{:<25}{:<45}", "ID", "User", "Cron", "Url");
         println!("{:-<90}", "");
-        for job  in jobs {
-            println!("{:<5}{:<15}{:<25}{:<40}", job.id, job.user, job.cron, job.url);
+        for job in jobs {
+            println!(
+                "{:<5}{:<15}{:<25}{:<40}",
+                job.id, job.user, job.cron, job.url
+            );
         }
     }
     Ok(())

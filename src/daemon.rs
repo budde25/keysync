@@ -2,12 +2,12 @@ use super::http;
 use job_scheduler::Job;
 use job_scheduler::JobScheduler;
 use log::{debug, error};
-use std::{thread, time};
 use std::str::FromStr;
+use std::{thread, time};
 
+use super::db;
 use super::file;
 use super::util;
-use super::db;
 
 pub fn start() -> anyhow::Result<()> {
     db::create_db()?;
@@ -36,7 +36,10 @@ fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
     let schedule: Vec<db::Schedule> = db::get_schedule()?;
     for item in schedule {
         match file::create_file_for_user(Some(&item.user)) {
-            Ok(_) => debug!("authorized keys file for {} exists or was created", &item.user),
+            Ok(_) => debug!(
+                "authorized keys file for {} exists or was created",
+                &item.user
+            ),
             Err(e) => {
                 error!(
                     "Unable to create authorized keys file for user {}. {}",
@@ -46,9 +49,10 @@ fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
             }
         }
 
-        sched.add(Job::new(cron::Schedule::from_str(&item.cron).unwrap(), move || {
-            run_job(item.user.to_owned(), item.url.to_owned())
-        }));
+        sched.add(Job::new(
+            cron::Schedule::from_str(&item.cron).unwrap(),
+            move || run_job(item.user.to_owned(), item.url.to_owned()),
+        ));
         println!("Scheduled item");
     }
 
