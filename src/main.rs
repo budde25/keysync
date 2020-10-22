@@ -1,12 +1,13 @@
 use clap::arg_enum;
 use cron::Schedule;
-use log::{debug, error, info, warn};
+use log::{error, info, warn};
 use nix::unistd::Uid;
 use std::str::FromStr;
 use structopt::StructOpt;
-use url::Url;
+use url::{ParseError, Url};
 
 mod daemon;
+mod db;
 mod file;
 mod http;
 mod util;
@@ -33,7 +34,7 @@ struct Opt {
     #[structopt(short, long, parse(from_occurrences))]
     verbose: u8,
 
-    /// Runs the commands without commiting the changes
+    /// Runs the commands without committing the changes
     #[structopt(short, long)]
     dry_run: bool,
 
@@ -47,26 +48,30 @@ struct Opt {
     about = "A command line client and service for keeping SHH keys up to date with a list Ex: Github."
 )]
 enum Command {
-    /// The username to fetch
+    /// Retrieve a key online
     #[structopt(name = "get")]
     Get {
-        /// The username of the account to get keys from
+        /// The username of the account
         #[structopt(name = "username")]
         username: String,
 
-        /// Retrive from github (default)
+        /// Retrieve from GitHub (default)
         #[structopt(short, long)]
         github: bool,
 
-        /// Retrive from gitlab, requires url
-        #[structopt(name = "url", short = "l", long = "gitlab")]
-        url: Option<String>,
+        /// Retrieve from GitLab [requires URL]
+        #[structopt(name = "url", short = "h", long = "gitlab", parse(try_from_str = parse_url))]
+        url: Option<Url>,
+
+        /// Retrieve from Launchpad
+        #[structopt(short, long)]
+        launchpad: bool,
     },
 
     /// Add an automatic job
     #[structopt(name = "set")]
     Set {
-        /// Thelocal user who get the keys
+        /// The local user account
         #[structopt(name = "user")]
         user: String,
 
@@ -74,17 +79,25 @@ enum Command {
         #[structopt(name = "username")]
         username: String,
 
-        /// Premade schedules
+        /// Default available schedules
         #[structopt(possible_values = &DefaultCron::variants(), case_insensitive = true)]
         schedule: DefaultCron,
 
-        /// Retrive from github (default)
+        /// Retrieve from GitGub (default)
         #[structopt(short, long)]
         github: bool,
 
-        /// Retrive from gitlab, requires url
-        #[structopt(name = "url", short = "l", long = "gitlab")]
-        url: Option<String>,
+        /// Retrieve from Launchpad
+        #[structopt(short, long)]
+        launchpad: bool,
+
+        /// Retrieve from GitLab [requires URL]
+        #[structopt(name = "url", short = "h", long = "gitlab", parse(try_from_str = parse_url))]
+        url: Option<Url>,
+
+        /// Also runs in addition to adding to schedule
+        #[structopt(short, long)]
+        now: bool,
 
         /// A schedule in cron format Ex: '* * * * * *'
         #[structopt(
@@ -98,7 +111,15 @@ enum Command {
         expression: Option<String>,
     },
 
-    /// Current enabled jobs
+    /// Remove job(s) by ID
+    #[structopt(name = "remove")]
+    Remove {
+        /// Job IDs to remove
+        #[structopt()]
+        id: Vec<i32>,
+    },
+
+    /// list enabled jobs
     #[structopt(name = "jobs")]
     Job {},
 }
@@ -112,50 +133,59 @@ fn main() -> anyhow::Result<()> {
     }
 
     //Opt::clap().gen_completions(env!("CARGO_PKG_NAME"), Shell::Bash, "target");
-
     let cli: Opt = Opt::from_args();
 
     // Sets the log level
     match cli.verbose {
         0 => env_logger::builder()
             .filter_level(log::LevelFilter::Warn)
+            .format_timestamp(None)
             .init(),
         1 => env_logger::builder()
             .filter_level(log::LevelFilter::Info)
+            .format_timestamp(None)
             .init(),
         2 => env_logger::builder()
             .filter_level(log::LevelFilter::Debug)
+            .format_timestamp(None)
             .init(),
         _ => env_logger::builder()
             .filter_level(log::LevelFilter::Trace)
+            .format_timestamp(None)
             .init(),
     };
 
-    info!("Logger has been intaialized");
+    info!("Logger has been initialized");
 
     match cli.cmd {
         Command::Get {
             username,
             github,
             url,
-        } => get(username, github, url, cli.dry_run)?,
+            launchpad,
+        } => get(username, github, url, launchpad, None, cli.dry_run)?,
         Command::Set {
             user,
             username,
             schedule,
             github,
+            launchpad,
             url,
             expression,
+            now,
         } => set(
             user,
             username,
             github,
             url,
+            launchpad,
             schedule,
             expression,
             cli.dry_run,
+            now,
         )?,
         Command::Job {} => jobs()?,
+        Command::Remove { id } => remove(id)?,
     };
 
     Ok(())
@@ -164,61 +194,33 @@ fn main() -> anyhow::Result<()> {
 /// Gets the keys from a provider
 fn get(
     username: String,
-    mut github: bool,
-    gitlab: Option<String>,
+    github: bool,
+    gitlab: Option<Url>,
+    launchpad: bool,
+    user: Option<&str>,
     dry_run: bool,
 ) -> anyhow::Result<()> {
     info!("Getting data for {}", username);
-
-    // if none are selected default to github
-    if !github && gitlab.is_none() {
-        github = true;
-    }
-
-    if Uid::current().is_root() {
+    if user.is_none() && Uid::current().is_root() {
         warn!("Running get as root downloads the keys to the root users authorized keys file, which might not be intended");
     }
 
     if !dry_run {
-        file::create_file_for_user(None)?;
+        file::create_file_for_user(user)?;
     }
-
-    debug!(
-        "github: {}, gitlab: {}, username {}",
-        github,
-        gitlab.is_some(),
-        username,
-    );
 
     let mut keys: Vec<String> = vec![];
-
-    if github {
-        let url = Url::parse(http::GITHUB_URL)?;
-        let response = http::get_standard(&username, url)?;
+    let urls: Vec<String> = util::create_urls(&username, github, launchpad, gitlab);
+    for url in urls {
+        let response = http::get_keys(&url)?;
         keys.append(&mut util::split_keys(&response));
     }
 
-    if let Some(mut url) = gitlab {
-        // Default url for empty string
-        if url.trim().is_empty() {
-            url = http::GITLAB_URL.to_string();
-        }
-
-        // Adds https but allows http if specified
-        if !url.contains("http") {
-            url = format!("{}{}", "https://", url);
-        }
-
-        let gitlab_url: Url = Url::parse(&url)?;
-        let response = http::get_standard(&username, gitlab_url)?;
-        keys.append(&mut util::split_keys(&response));
-    }
-
-    let keys_to_add: Vec<String> = util::filter_keys(keys, file::get_current_keys(None)?);
+    let keys_to_add: Vec<String> = util::filter_keys(keys, file::get_current_keys(user)?);
     let num_keys_to_add: usize = keys_to_add.len();
 
     if !dry_run {
-        file::write_keys(keys_to_add, None)?;
+        file::write_keys(keys_to_add, user)?;
         println!("Added {} new keys", num_keys_to_add);
     } else {
         println!("Found {} new keys", num_keys_to_add);
@@ -230,30 +232,23 @@ fn get(
 fn set(
     user: String,
     username: String,
-    mut github: bool,
-    gitlab: Option<String>,
+    github: bool,
+    gitlab: Option<Url>,
+    launchpad: bool,
     schedule: DefaultCron,
     expression: Option<String>,
     dry_run: bool,
+    now: bool,
 ) -> anyhow::Result<()> {
     if !Uid::current().is_root() {
-        warn!("Adding new jobs requires write access to /etc/, you will probably need to run this as root");
+        warn!("Adding new jobs requires write access, you will probably need to run this as root");
     }
 
     if !dry_run {
         file::create_file_for_user(Some(&user))?;
-        file::create_schedule_if_not_exist()?;
     }
 
-    // if none are selected default to github
-    if !github && gitlab.is_none() {
-        github = true;
-    }
-
-    if github && gitlab.is_some() {
-        error!("Must pick gitlab or github");
-        return Ok(());
-    }
+    let urls: Vec<String> = util::create_urls(&username, github, launchpad, gitlab.clone());
 
     let cron_result: Result<String, cron::error::Error> = match schedule {
         DefaultCron::Hourly => parse_cron("@hourly"),
@@ -277,36 +272,26 @@ fn set(
         }
     };
 
-    let url_to_add: String;
-    if github {
-        url_to_add = http::GITHUB_URL.to_owned();
-    } else if let Some(u) = gitlab {
-        // Default url for empty string
-        if u.trim().is_empty() {
-            url_to_add = http::GITLAB_URL.to_owned();
-        } else {
-            url_to_add = u;
+    if !dry_run {
+        for url in urls {
+            match db::add_schedule(user.clone(), cron.clone(), url) {
+                Ok(_) => println!("Successfully added import schedule"),
+                Err(e) => error!("{}", e),
+            };
         }
     } else {
-        url_to_add = http::GITLAB_URL.to_owned();
+        println!("Syntax Ok");
     }
 
-    let url_as_url: Url = Url::parse(&url_to_add)?;
-
-    if !dry_run {
-        match file::write_to_schedule(&user, &cron, &url_as_url.to_string(), &username) {
-            Ok(_) => println!("Successfully added import schedule"),
-            Err(e) => error!("{}", e),
-        };
-    } else {
-        println!("Syntax Ok")
+    if now {
+        get(username, github, gitlab, launchpad, Some(&user), dry_run)?;
     }
 
     Ok(())
 }
 
 fn jobs() -> anyhow::Result<()> {
-    let jobs = file::get_schedule()?;
+    let jobs: Vec<db::Schedule> = db::get_schedule()?;
     let total_jobs = jobs.len();
     println!(
         "Found {} job{}",
@@ -314,32 +299,37 @@ fn jobs() -> anyhow::Result<()> {
         if total_jobs == 1 { "" } else { "s" }
     );
     if total_jobs > 0 {
-        println!(
-            "{:<5}{:<15}{:<25}{:<30}{:<15}",
-            "ID", "User", "Cron", "Url", "Username"
-        );
+        println!("{:<5}{:<15}{:<25}{:<45}", "ID", "User", "Cron", "Url");
         println!("{:-<90}", "");
-        for (i, job) in jobs.iter().enumerate() {
-            let data: Vec<&str> = job.split('|').collect();
-            let user: &str = data[0];
-            let cron: &str = data[1];
-            let url: &str = data[2];
-            let username: &str = data[3];
-            println!(
-                "{:<5}{:<15}{:<25}{:<30}{:<15}",
-                i + 1,
-                user,
-                cron,
-                url,
-                username
-            );
+        for job  in jobs {
+            println!("{:<5}{:<15}{:<25}{:<40}", job.id, job.user, job.cron, job.url);
         }
     }
-
     Ok(())
+}
+
+fn remove(ids: Vec<i32>) -> anyhow::Result<()> {
+    if !Uid::current().is_root() {
+        warn!("Adding new jobs requires write access, you will probably need to run this as root");
+    }
+
+    for id in ids {
+        db::delete_schedule(id)?;
+        println!("Removed job with id: {}", id);
+    }
+
+    return Ok(());
 }
 
 fn parse_cron(src: &str) -> Result<String, cron::error::Error> {
     Schedule::from_str(src)?;
     Ok(src.to_string())
+}
+
+fn parse_url(src: &str) -> Result<Url, ParseError> {
+    if src.contains("http") {
+        Url::parse(src)
+    } else {
+        Url::parse(&("https://".to_owned() + src))
+    }
 }

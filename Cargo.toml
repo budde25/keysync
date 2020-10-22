@@ -1,6 +1,6 @@
 [package]
 name = "keysync"
-version = "0.1.4"
+version = "2.0.0"
 authors = ["Ethan Budd <budde25@protonmail.com>"]
 edition = "2018"
 description = "A utility to sync local authorized_keys file updated with your with Github and Gitlab public keys"
@@ -21,7 +21,7 @@ It downloads and filters only keys that you don't already have a local copy of. 
 as one time sync when run, or running automatically in the background as a systemd service. You can have the file it \
 updated at a preset interval or a custom cron expression, you can even support multiple users and providers. """
 section = "utility"
-maintainer-scripts = "debian/"
+maintainer-scripts = "contrib/"
 systemd-units = { enable = true }
 
 
@@ -39,3 +39,4 @@ env_logger = "0.7"
 log = "0.4"
 nix = "0.19"
 clap = "2.33"
+rusqlite = "0.24"

@@ -4,22 +4,22 @@
 [![Crates.io](https://img.shields.io/crates/v/keysync)](https://crates.io/crates/keysync)
 [![Crates.io](https://img.shields.io/crates/d/keysync)](https://crates.io/crates/keysync)
 
-keysync is a command line utility and service to help keep your local authorized_keys file synced to a master copy of public keys. The program allows syncing from Github and Gitlab at the moment, custom url support is coming soon. It downloads and filters only keys that you don't already have a local copy of. This application can be used for either as one time sync when run, or running automatically in the background as a systemd service. You can have the file it updated at a preset interval or a custom cron expression, you can even support multiple users and providers.  
+keysync is a command line utility and service to help keep your local authorized_keys file synced to a master copy of public keys. The program allows syncing from Github, Gitlab, Launchpad at the moment, custom url support is coming soon. It downloads and filters only keys that you don't already have a local copy of. This application can be used for either as one time sync when run, or running automatically in the background as a systemd service. You can have the file it updated at a preset interval or a custom cron expression, you can even support multiple users and providers.  
 
 Note: Automatic jobs will fail if the computer goes to sleep/hibernate. The systemd daemon is recommeded primarily for servers. For personal computers it is recomended to just run the command manually whenever you add public keys.
 
-**Warning** If you're Github or Gitlab is comprmised an attacker can upload their keys to gain access to you're computer. For security please do not set this program up for a root user, you're just asking for trouble.
+**Warning** If you're Github, Gitlab or Launchpad is comprmised an attacker can upload their keys to gain access to you're computer. For security please do not set this program up for a root user, you're just asking for trouble.
 
 ## Install
 
-Install deb from releases.  
+Install latest deb from releases.  
 `cargo install keysync` not reccomended, cannot run as daemon.  
 More releases coming soon.  
 
 ## Usage
 
 ```
-SSH Key Sync 0.1.4
+SSH Key Sync 0.2.0
 A command line client and service for keeping SHH keys up to date with a list Ex: Github.
 
 USAGE:
@@ -57,6 +57,11 @@ Valid schedules are [Hourly, Daily, Weekly, Monthly, Custom]
 `cargo build` Will build an executable.  
 `cargo run -- <args>` Will build and run an executable.  
 `cargo doc` Will build the documentation.  
+
+### Install for Debian
+
+`cargo install cargo-deb` To install install the deb packager.  
+`cargo deb --install` will install the binary and systemd service.  
 
 ### Testing
 

@@ -1,6 +1,8 @@
+use super::http;
 use nix::unistd;
 use nix::unistd::Gid;
 use nix::unistd::Uid;
+use url::Url;
 
 pub fn get_uid_gid(user: &str) -> anyhow::Result<(Uid, Gid)> {
     let user_option = unistd::User::from_name(user)?;
@@ -16,7 +18,7 @@ pub fn filter_keys(to_add: Vec<String>, exist: Vec<String>) -> Vec<String> {
     to_add
         .iter()
         .filter(|x| !exist.contains(x))
-        .map(|x| x.to_owned() + " # ssh-import keysync")
+        .map(|x| x.to_owned() + " #ssh-import keysync")
         .collect()
 }
 
@@ -33,6 +35,32 @@ pub fn clean_keys(original_keys: Vec<String>) -> Vec<String> {
         .iter()
         .map(|x| x.split(' ').map(|x| x.to_owned()).collect::<Vec<String>>()[0..2].join(" "))
         .collect()
+}
+
+// Returns a list of urls based for each service
+pub fn create_urls(
+    username: &str,
+    mut github: bool,
+    launchpad: bool,
+    gitlab: Option<Url>,
+) -> Vec<String> {
+    // if none are selected default to github
+    if !github && !launchpad && gitlab.is_none() {
+        github = true
+    };
+
+    let mut urls: Vec<String> = vec![];
+    if github {
+        urls.push(http::get_github(username))
+    };
+    if launchpad {
+        urls.push(http::get_launchpad(username))
+    };
+    match gitlab {
+        Some(url) => urls.push(http::get_gitlab(username, Some(url))),
+        None => (),
+    };
+    urls
 }
 
 // TESTS

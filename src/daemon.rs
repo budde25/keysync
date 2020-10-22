@@ -3,15 +3,16 @@ use job_scheduler::Job;
 use job_scheduler::JobScheduler;
 use log::{debug, error};
 use std::{thread, time};
-use url::Url;
+use std::str::FromStr;
 
 use super::file;
 use super::util;
+use super::db;
 
 pub fn start() -> anyhow::Result<()> {
-    file::create_schedule_if_not_exist()?;
+    db::create_db()?;
 
-    let mut sched = JobScheduler::new();
+    let mut sched: JobScheduler = JobScheduler::new();
     sched = schedule_tasks(sched)?;
     let sleep_time = time::Duration::from_millis(60 * 1000); // 1 minute
     let mut last_modified = file::schedule_last_modified()?;
@@ -31,57 +32,39 @@ pub fn start() -> anyhow::Result<()> {
 }
 
 fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
-    println!("Schduling jobs");
-    let schedule: Vec<String> = file::get_schedule()?;
+    println!("Scheduling jobs");
+    let schedule: Vec<db::Schedule> = db::get_schedule()?;
     for item in schedule {
-        // Skips any empty lines
-        if item.trim().is_empty() {
-            continue;
-        }
-
-        let data: Vec<String> = item.split('|').map(|x| x.to_owned()).collect();
-        let user: String = data[0].clone();
-        let cron: String = data[1].clone();
-        let url: Url = Url::parse(&data[2])?;
-        let username: String = data[3].clone();
-
-        match cron.parse() {
-            Ok(valid) => {
-                match file::create_file_for_user(Some(&user)) {
-                    Ok(_) => debug!("authorized keys file for {} exists or was created", user),
-                    Err(e) => {
-                        error!(
-                            "Unable to create authorized keys file for user {}. {}",
-                            user, e
-                        );
-                        continue;
-                    }
-                };
-
-                sched.add(Job::new(valid, move || {
-                    run_job(user.to_owned(), url.to_owned(), username.to_owned())
-                }));
-                println!("Scheduled item {}", item);
-            }
-            Err(_) => {
-                println!("Cron {} failed to be parsed, skipping...", cron);
+        match file::create_file_for_user(Some(&item.user)) {
+            Ok(_) => debug!("authorized keys file for {} exists or was created", &item.user),
+            Err(e) => {
+                error!(
+                    "Unable to create authorized keys file for user {}. {}",
+                    &item.user, e
+                );
                 continue;
             }
         }
+
+        sched.add(Job::new(cron::Schedule::from_str(&item.cron).unwrap(), move || {
+            run_job(item.user.to_owned(), item.url.to_owned())
+        }));
+        println!("Scheduled item");
     }
 
     Ok(sched)
 }
 
-fn run_job(user: String, url: Url, username: String) {
-    let content = http::get_standard(&username, url);
-
-    let clean_content = match content {
-        Ok(clean) => clean,
-        Err(_) => return,
+fn run_job(user: String, url: String) {
+    let content = match http::get_keys(&url) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("{}", e);
+            return;
+        }
     };
 
-    let keys = util::split_keys(&clean_content);
+    let keys = util::split_keys(&content);
     let exist = match file::get_current_keys(Some(&user)) {
         Ok(key) => key,
         Err(_) => return,

@@ -7,6 +7,7 @@ use url::Url;
 
 pub const GITHUB_URL: &str = "https://github.com/";
 pub const GITLAB_URL: &str = "https://gitlab.com/";
+pub const LAUNCHPAD_URL: &str = "https://launchpad.net/";
 
 /// creates the client
 fn get_client() -> Result<Client, Error> {
@@ -16,22 +17,31 @@ fn get_client() -> Result<Client, Error> {
 
 /// Gets the ssh keys from gitlab
 #[tokio::main]
-pub async fn get_standard(username: &str, url: Url) -> Result<String, Error> {
-    let request: String = format!(
-        "{url}{user}{ext}",
-        url = url,
-        user = username,
-        ext = ".keys"
-    );
-
+pub async fn get_keys(request_url: &str) -> Result<String, Error> {
     let client: Client = get_client()?;
 
-    let response: Result<Response, Error> = client.get(&request).send().await?.error_for_status();
+    let response: Result<Response, Error> =
+        client.get(request_url).send().await?.error_for_status();
 
     match response {
-        Ok(resp) => return Ok(resp.text().await?),
-        Err(e) => return Err(e),
+        Ok(resp) => Ok(resp.text().await?),
+        Err(e) => Err(e),
     }
+}
+
+pub fn get_github(username: &str) -> String {
+    format!("{}{}.keys", GITHUB_URL, username)
+}
+
+pub fn get_gitlab(username: &str, url: Option<Url>) -> String {
+    match url {
+        Some(u) => format!("{}{}.keys", u, username),
+        None => format!("{}{}.keys", GITLAB_URL, username),
+    }
+}
+
+pub fn get_launchpad(username: &str) -> String {
+    format!("{}~{}/+sshkeys", LAUNCHPAD_URL, username)
 }
 
 // TESTS
@@ -43,28 +53,51 @@ mod tests {
     #[test]
     #[ignore]
     fn get_github_budde25() {
-        let url = Url::parse(GITHUB_URL).unwrap();
-        get_standard("budde25", url).expect("Args are valid should return a result");
+        let url = get_github("budde25");
+        get_keys(&url).expect("Args are valid should return a result");
     }
 
     #[test]
     #[ignore]
     fn get_gitlab_budde25() {
-        let url = Url::parse(GITLAB_URL).unwrap();
-        get_standard("budde25", url).expect("Args are valid should return a result");
+        let url = get_gitlab("budde25", None);
+        get_keys(&url).expect("Args are valid should return a result");
     }
 
     #[test]
     #[ignore]
     fn get_wisc_gitlab_budd() {
-        let url = Url::parse("https://gitlab.cs.wisc.edu").unwrap();
-        get_standard("budd", url).expect("Args are valid should return a result");
+        let url = get_gitlab(
+            "budde25",
+            Some(Url::parse("https://gitlab.cs.wisc.edu/").unwrap()),
+        );
+        get_keys(&url).expect("Args are valid should return a result");
     }
 
     #[test]
     #[ignore]
     fn get_invalid_url() {
-        let url = Url::parse("https://abc.edu").unwrap();
-        get_standard("budd", url).expect_err("Args are valid should not return a result");
+        let url = get_gitlab("budde25", Some(Url::parse("https://abc.edu/").unwrap()));
+        get_keys(&url).expect("Args are valid should return a result");
+    }
+
+    #[test]
+    fn url_completion() {
+        assert_eq!(&get_github("budde25"), "https://github.com/budde25.keys");
+        assert_eq!(
+            &get_gitlab("budde25", None),
+            "https://gitlab.com/budde25.keys"
+        );
+        assert_eq!(
+            &get_gitlab(
+                "budde25",
+                Some(Url::parse("https://gitlab.cs.wisc.edu/").unwrap())
+            ),
+            "https://gitlab.cs.wisc.edu/budde25.keys"
+        );
+        assert_eq!(
+            &get_launchpad("budde25"),
+            "https://launchpad.net/~budde25/+sshkeys"
+        );
     }
 }
