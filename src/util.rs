@@ -1,4 +1,5 @@
 use super::http;
+use anyhow::anyhow;
 use nix::unistd;
 use nix::unistd::Gid;
 use nix::unistd::Uid;
@@ -61,6 +62,27 @@ pub fn create_urls(
         None => (),
     };
     urls
+}
+
+pub fn run_as_root() -> anyhow::Result<()> {
+    if !Uid::current().is_root() {
+        match std::process::Command::new("sudo")
+            .args(std::env::args())
+            .spawn()
+        {
+            Ok(mut sudo) => {
+                let output = sudo.wait().expect("Command failed to request root");
+                if output.success() {
+                    std::process::exit(0);
+                } else {
+                    return Err(anyhow!("Command failed to request root"));
+                }
+            }
+            Err(_) => return Err(anyhow!("Requires root")),
+        }
+    } else {
+        Ok(())
+    }
 }
 
 // TESTS

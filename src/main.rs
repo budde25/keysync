@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use clap::arg_enum;
 use cron::Schedule;
 use log::{error, info, warn};
@@ -240,9 +241,7 @@ fn set(
     dry_run: bool,
     now: bool,
 ) -> anyhow::Result<()> {
-    if !Uid::current().is_root() {
-        warn!("Adding new jobs requires write access, you will probably need to run this as root");
-    }
+    util::run_as_root()?;
 
     if !dry_run {
         file::create_file_for_user(Some(&user))?;
@@ -312,9 +311,7 @@ fn jobs() -> anyhow::Result<()> {
 }
 
 fn remove(ids: Vec<i32>) -> anyhow::Result<()> {
-    if !Uid::current().is_root() {
-        warn!("Adding new jobs requires write access, you will probably need to run this as root");
-    }
+    util::run_as_root()?;
 
     for id in ids {
         db::delete_schedule(id)?;
