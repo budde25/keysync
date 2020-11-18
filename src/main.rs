@@ -1,4 +1,3 @@
-use anyhow::anyhow;
 use clap::arg_enum;
 use cron::Schedule;
 use log::{error, info, warn};
