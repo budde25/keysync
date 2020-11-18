@@ -28,14 +28,14 @@ systemd-units = { enable = true }
 [dependencies]
 structopt = "0.3"
 reqwest = { version = "0.10.8", features = ["json"] }
-tokio = { version = "0.2.22", features = ["full"] }
+tokio = { version = "0.2.23", features = ["full"] }
 anyhow = "1.0"
 dirs = "3.0"
-url = "2.1"
+url = "2.2"
 job_scheduler = "1.2"
 filetime = "0.2"
 cron = "0.6"
-env_logger = "0.7"
+env_logger = "0.8"
 log = "0.4"
 nix = "0.19"
 clap = "2.33"
