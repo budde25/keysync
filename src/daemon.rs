@@ -50,7 +50,7 @@ fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
         }
 
         sched.add(Job::new(
-            cron::Schedule::from_str(&item.cron).unwrap(),
+            job_scheduler::Schedule::from_str(&item.cron).unwrap(),
             move || run_job(item.user.to_owned(), item.url.to_owned()),
         ));
         println!("Scheduled item");
