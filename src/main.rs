@@ -1,13 +1,12 @@
-use anyhow::anyhow;
 use clap::arg_enum;
 use cron::Schedule;
 use log::{error, info, warn};
 use nix::unistd::Uid;
-use std::process;
 use std::str::FromStr;
 use structopt::StructOpt;
 use url::{ParseError, Url};
 
+mod cli;
 mod daemon;
 mod db;
 mod file;
@@ -16,14 +15,7 @@ mod util;
 
 // Default Options options for a cron job
 arg_enum! {
-    #[derive(Debug)]
-    enum DefaultCron {
-        Hourly,
-        Daily,
-        Weekly,
-        Monthly,
-        Custom,
-    }
+    util::DefaultCron
 }
 
 #[derive(StructOpt)]
@@ -110,7 +102,7 @@ enum Command {
             required_if("schedule", "custom"),
             required_if("schedule", "CUSTOM")
         )]
-        expression: Option<String>,
+        expression: Option<Schedule>,
     },
 
     /// Remove job(s) by ID
@@ -238,7 +230,7 @@ fn set(
     gitlab: Option<Url>,
     launchpad: bool,
     schedule: DefaultCron,
-    expression: Option<String>,
+    expression: Option<Schedule>,
     dry_run: bool,
     now: bool,
 ) -> anyhow::Result<()> {
@@ -250,31 +242,17 @@ fn set(
 
     let urls: Vec<String> = util::create_urls(&username, github, launchpad, gitlab.clone());
 
-    let cron_result: Result<String, cron::error::Error> = match schedule {
-        DefaultCron::Hourly => parse_cron("@hourly"),
-        DefaultCron::Daily => parse_cron("@daily"),
-        DefaultCron::Weekly => parse_cron("@weekly"),
-        DefaultCron::Monthly => parse_cron("@monthly"),
-        DefaultCron::Custom => match expression {
-            Some(exp) => parse_cron(&exp),
-            None => {
-                error!("Cron expression must be defined with 'Custom' Schedule");
-                return Ok(());
-            }
-        },
-    };
-
-    let cron = match cron_result {
-        Ok(c) => c,
-        Err(e) => {
-            error!("Unable to format this cron expression. {}", e);
-            return Ok(());
-        }
+    let cron: Schedule = match schedule {
+        DefaultCron::Hourly => Schedule::from_str("@hourly").unwrap(),
+        DefaultCron::Daily => Schedule::from_str("@daily").unwrap(),
+        DefaultCron::Weekly => Schedule::from_str("@weekly").unwrap(),
+        DefaultCron::Monthly => Schedule::from_str("@monthly").unwrap(),
+        DefaultCron::Custom => expression.unwrap(),
     };
 
     if !dry_run {
         for url in urls {
-            match db::add_schedule(user.clone(), cron.clone(), url) {
+            match db::add_schedule(user.clone(), cron.to_string(), url) {
                 Ok(_) => println!("Successfully added import schedule"),
                 Err(e) => error!("{}", e),
             };
@@ -320,11 +298,6 @@ fn remove(ids: Vec<i32>) -> anyhow::Result<()> {
     }
 
     return Ok(());
-}
-
-fn parse_cron(src: &str) -> Result<String, cron::error::Error> {
-    Schedule::from_str(src)?;
-    Ok(src.to_string())
 }
 
 fn parse_url(src: &str) -> Result<Url, ParseError> {

@@ -5,6 +5,15 @@ use nix::unistd::Gid;
 use nix::unistd::Uid;
 use url::Url;
 
+#[derive(Debug)]
+pub enum DefaultCron {
+    Hourly,
+    Daily,
+    Weekly,
+    Monthly,
+    Custom,
+}
+
 pub fn get_uid_gid(user: &str) -> anyhow::Result<(Uid, Gid)> {
     let user_option = unistd::User::from_name(user)?;
 
