@@ -27,8 +27,8 @@ systemd-units = { enable = true }
 
 [dependencies]
 structopt = "0.3"
-reqwest = { version = "0.10.8", features = ["json"] }
-tokio = { version = "0.2.23", features = ["full"] }
+reqwest = { version = "0.10", features = ["json"] }
+tokio = { version = "0.2", features = ["full"] }
 anyhow = "1.0"
 dirs = "3.0"
 url = "2.2"
