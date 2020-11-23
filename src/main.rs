@@ -1,7 +1,9 @@
+use anyhow::anyhow;
 use clap::arg_enum;
 use cron::Schedule;
 use log::{error, info, warn};
 use nix::unistd::Uid;
+use std::process;
 use std::str::FromStr;
 use structopt::StructOpt;
 use url::{ParseError, Url};
@@ -201,8 +203,20 @@ fn get(
     dry_run: bool,
 ) -> anyhow::Result<()> {
     info!("Getting data for {}", username);
-    if user.is_none() && Uid::current().is_root() {
-        warn!("Running get as root downloads the keys to the root users authorized keys file, which might not be intended");
+    if !Uid::current().is_root() {
+        warn!("");
+        println!("{:?}", std::env::args());
+        let resp = process::Command::new("sudo")
+            .args(std::env::args())
+            .stdin(process::Stdio::inherit())
+            .spawn();
+
+        if resp.is_err() {
+            anyhow!(
+                "Adding new jobs requires write access, you will probably need to run this as root"
+            );
+        }
+        return Ok(());
     }
 
     if !dry_run {
