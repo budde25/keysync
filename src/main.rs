@@ -203,20 +203,8 @@ fn get(
     dry_run: bool,
 ) -> anyhow::Result<()> {
     info!("Getting data for {}", username);
-    if !Uid::current().is_root() {
-        warn!("");
-        println!("{:?}", std::env::args());
-        let resp = process::Command::new("sudo")
-            .args(std::env::args())
-            .stdin(process::Stdio::inherit())
-            .spawn();
-
-        if resp.is_err() {
-            anyhow!(
-                "Adding new jobs requires write access, you will probably need to run this as root"
-            );
-        }
-        return Ok(());
+    if Uid::current().is_root() {
+        warn!("Running as root will add this to the root users authorized keys file")
     }
 
     if !dry_run {
