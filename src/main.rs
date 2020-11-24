@@ -2,7 +2,6 @@ use clap::{value_t_or_exit, ArgMatches};
 use cron::Schedule;
 use log::{error, info, warn};
 use nix::unistd::Uid;
-use std::str::FromStr;
 use url::{ParseError, Url};
 
 mod cli;
@@ -58,7 +57,7 @@ fn get(m: &ArgMatches) -> anyhow::Result<()> {
     };
     let github: bool = m.is_present("github");
     let launchpad: bool = m.is_present("launchpad");
-    let dry_run: bool = m.is_present("dry-run");
+    let dry_run: bool = m.is_present("dry_run");
 
     info!("Getting data for {}", username);
     if Uid::current().is_root() {

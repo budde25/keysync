@@ -152,7 +152,7 @@ pub fn app() -> App<'static, 'static> {
         .subcommand(jobs)
         .subcommand(daemon)
         .arg(
-            Arg::with_name("dry run")
+            Arg::with_name("dry_run")
                 .help("Runs the commands without committing the changes")
                 .short("d")
                 .long("dry-run")
