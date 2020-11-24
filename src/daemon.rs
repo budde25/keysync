@@ -10,7 +10,10 @@ use super::file;
 use super::util;
 
 pub fn start() -> anyhow::Result<()> {
-    db::create_db()?;
+    {
+        // Putting it its own scope allow it to release the connection right after creating the database
+        db::Database::open()?;
+    }
 
     let mut sched: JobScheduler = JobScheduler::new();
     sched = schedule_tasks(sched)?;
@@ -33,7 +36,8 @@ pub fn start() -> anyhow::Result<()> {
 
 fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
     println!("Scheduling jobs");
-    let schedule: Vec<db::Schedule> = db::get_schedule()?;
+    let database = db::Database::open()?;
+    let schedule: Vec<db::Schedule> = database.get_schedules()?;
     for item in schedule {
         match file::create_file_for_user(Some(&item.user)) {
             Ok(_) => debug!(

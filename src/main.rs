@@ -116,11 +116,10 @@ fn set(m: &ArgMatches) -> anyhow::Result<()> {
     let urls: Vec<String> = util::create_urls(&username, github, launchpad, gitlab.clone());
 
     if !dry_run {
+        let database = db::Database::open()?;
         for url in urls {
-            match db::add_schedule(user.clone(), cron.to_string(), url) {
-                Ok(_) => println!("Successfully added import schedule"),
-                Err(e) => error!("{}", e),
-            };
+            database.add_schedule(&user, &cron.to_string(), &url)?;
+            println!("Successfully added import schedule with url: {}", url);
         }
     } else {
         println!("Syntax Ok");
@@ -134,7 +133,8 @@ fn set(m: &ArgMatches) -> anyhow::Result<()> {
 }
 
 fn jobs() -> anyhow::Result<()> {
-    let jobs: Vec<db::Schedule> = db::get_schedule()?;
+    let database = db::Database::open()?;
+    let jobs: Vec<db::Schedule> = database.get_schedules()?;
     let total_jobs = jobs.len();
     println!(
         "Found {} job{}",
@@ -147,7 +147,10 @@ fn jobs() -> anyhow::Result<()> {
         for job in jobs {
             println!(
                 "{:<5}{:<15}{:<25}{:<40}",
-                job.id, job.user, job.cron, job.url
+                job.id.unwrap_or(0),
+                job.user,
+                job.cron,
+                job.url
             );
         }
     }
@@ -156,9 +159,10 @@ fn jobs() -> anyhow::Result<()> {
 
 fn remove(m: &ArgMatches) -> anyhow::Result<()> {
     util::run_as_root()?;
+    let database = db::Database::open()?;
     if let Some(ids) = m.values_of("ids") {
         for id in ids {
-            if let Err(err) = delete_schedule(id) {
+            if let Err(err) = delete_schedule(&database, id) {
                 warn!("Bad input: {}; skipped.", err);
             }
         }
@@ -167,9 +171,9 @@ fn remove(m: &ArgMatches) -> anyhow::Result<()> {
     return Ok(());
 }
 
-fn delete_schedule(id: &str) -> anyhow::Result<()> {
+fn delete_schedule(database: &db::Database, id: &str) -> anyhow::Result<()> {
     let id_int = id.to_string().parse::<u32>()?;
-    db::delete_schedule(id_int)?;
+    database.delete_schedule(id_int)?;
     println!("Removed job with id: {}", id_int);
     Ok(())
 }
