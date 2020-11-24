@@ -46,7 +46,7 @@ pub fn create_db() -> anyhow::Result<()> {
 }
 
 /// Deletes a schedule with a given ID
-pub fn delete_schedule(id: i32) -> anyhow::Result<()> {
+pub fn delete_schedule(id: u32) -> anyhow::Result<()> {
     let path: PathBuf = file::get_schedule_path();
     let conn: Connection = Connection::open(path)?;
 
