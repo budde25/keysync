@@ -1,7 +1,5 @@
-use reqwest::Client;
-use reqwest::ClientBuilder;
-use reqwest::Error;
-use reqwest::Response;
+use anyhow::{anyhow, Context, Result};
+use reqwest::{Client, ClientBuilder, Error, Response};
 use std::time::Duration;
 use url::Url;
 
@@ -9,23 +7,34 @@ pub const GITHUB_URL: &str = "https://github.com/";
 pub const GITLAB_URL: &str = "https://gitlab.com/";
 pub const LAUNCHPAD_URL: &str = "https://launchpad.net/";
 
-/// creates the client
-fn get_client() -> Result<Client, Error> {
-    let timeout = Duration::new(10, 0);
-    Ok(ClientBuilder::new().timeout(timeout).build()?)
+pub struct Network {
+    client: Client,
 }
 
-/// Gets the ssh keys from gitlab
-#[tokio::main]
-pub async fn get_keys(request_url: &str) -> Result<String, Error> {
-    let client: Client = get_client()?;
+impl Network {
+    /// creates the client
+    pub fn new() -> Self {
+        let timeout = Duration::new(10, 0);
+        Network {
+            client: ClientBuilder::new().timeout(timeout).build().unwrap(),
+        }
+    }
 
-    let response: Result<Response, Error> =
-        client.get(request_url).send().await?.error_for_status();
+    /// Gets the ssh keys from gitlab
+    #[tokio::main]
+    pub async fn get_keys<S: AsRef<str>>(&self, request_url: S) -> Result<String> {
+        let response: Result<Response, Error> = self
+            .client
+            .get(request_url.as_ref())
+            .send()
+            .await
+            .with_context(|| format!("Error getting keys from: {}", request_url.as_ref()))?
+            .error_for_status();
 
-    match response {
-        Ok(resp) => Ok(resp.text().await?),
-        Err(e) => Err(e),
+        match response {
+            Ok(resp) => Ok(resp.text().await?),
+            Err(e) => Err(anyhow!("{}", e)),
+        }
     }
 }
 
@@ -53,32 +62,40 @@ mod tests {
     #[test]
     #[ignore]
     fn get_github_budde25() {
+        let n = Network::new();
         let url = get_github("budde25");
-        get_keys(&url).expect("Args are valid should return a result");
+        n.get_keys(&url)
+            .expect("Args are valid should return a result");
     }
 
     #[test]
     #[ignore]
     fn get_gitlab_budde25() {
+        let n = Network::new();
         let url = get_gitlab("budde25", None);
-        get_keys(&url).expect("Args are valid should return a result");
+        n.get_keys(&url)
+            .expect("Args are valid should return a result");
     }
 
     #[test]
     #[ignore]
     fn get_wisc_gitlab_budd() {
+        let n = Network::new();
         let url = get_gitlab(
             "budde25",
             Some(Url::parse("https://gitlab.cs.wisc.edu/").unwrap()),
         );
-        get_keys(&url).expect("Args are valid should return a result");
+        n.get_keys(&url)
+            .expect("Args are valid should return a result");
     }
 
     #[test]
     #[ignore]
     fn get_invalid_url() {
+        let n = Network::new();
         let url = get_gitlab("budde25", Some(Url::parse("https://abc.edu/").unwrap()));
-        get_keys(&url).expect("Args are valid should return a result");
+        n.get_keys(&url)
+            .expect("Args are valid should return a result");
     }
 
     #[test]

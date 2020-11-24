@@ -1,6 +1,6 @@
 use clap::{value_t_or_exit, ArgMatches};
 use cron::Schedule;
-use log::{error, info, warn};
+use log::{info, warn};
 use nix::unistd::Uid;
 use url::{ParseError, Url};
 
@@ -70,8 +70,9 @@ fn get(m: &ArgMatches) -> anyhow::Result<()> {
 
     let mut keys: Vec<String> = vec![];
     let urls: Vec<String> = util::create_urls(&username, github, launchpad, gitlab);
+    let network = http::Network::new();
     for url in urls {
-        let response = http::get_keys(&url)?;
+        let response = network.get_keys(&url)?;
         keys.append(&mut util::split_keys(&response));
     }
 

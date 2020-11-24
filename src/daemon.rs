@@ -64,7 +64,8 @@ fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
 }
 
 fn run_job(user: String, url: String) {
-    let content = match http::get_keys(&url) {
+    let network = http::Network::new();
+    let content = match network.get_keys(&url) {
         Ok(c) => c,
         Err(e) => {
             eprintln!("{}", e);
