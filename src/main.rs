@@ -64,9 +64,7 @@ fn get(m: &ArgMatches) -> anyhow::Result<()> {
         warn!("Running as root will add this to the root users authorized keys file")
     }
 
-    if !dry_run {
-        file::create_file_for_user(None)?;
-    }
+    let auth: file::AuthorizedKeys = file::AuthorizedKeys::open(None)?;
 
     let mut keys: Vec<String> = vec![];
     let urls: Vec<String> = util::create_urls(&username, github, launchpad, gitlab);
@@ -76,11 +74,11 @@ fn get(m: &ArgMatches) -> anyhow::Result<()> {
         keys.append(&mut util::split_keys(&response));
     }
 
-    let keys_to_add: Vec<String> = util::filter_keys(keys, file::get_current_keys(None)?);
+    let keys_to_add: Vec<String> = util::filter_keys(keys, auth.get_keys()?);
     let num_keys_to_add: usize = keys_to_add.len();
 
     if !dry_run {
-        file::write_keys(keys_to_add, None)?;
+        auth.write_keys(keys_to_add)?;
         println!("Added {} new keys", num_keys_to_add);
     } else {
         println!("Found {} new keys", num_keys_to_add);
@@ -110,9 +108,7 @@ fn set(m: &ArgMatches) -> anyhow::Result<()> {
 
     util::run_as_root()?;
 
-    if !dry_run {
-        file::create_file_for_user(Some(&user))?;
-    }
+    file::AuthorizedKeys::open(Some(&user))?;
 
     let urls: Vec<String> = util::create_urls(&username, github, launchpad, gitlab.clone());
 

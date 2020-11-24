@@ -1,18 +1,7 @@
 use super::http;
 use anyhow::anyhow;
-use nix::unistd;
-use nix::unistd::Gid;
 use nix::unistd::Uid;
 use url::Url;
-
-pub fn get_uid_gid(user: &str) -> anyhow::Result<(Uid, Gid)> {
-    let user_option = unistd::User::from_name(user)?;
-
-    match user_option {
-        Some(user) => Ok((user.uid, user.gid)),
-        None => Ok((Uid::current(), Gid::current())),
-    }
-}
 
 /// Filters the keys to prevent adding duplicates
 pub fn filter_keys(to_add: Vec<String>, exist: Vec<String>) -> Vec<String> {

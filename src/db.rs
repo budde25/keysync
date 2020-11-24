@@ -1,7 +1,8 @@
 use anyhow::{anyhow, Context, Result};
 use cron;
+use filetime::FileTime;
 use rusqlite::{params, Connection, NO_PARAMS};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::{fmt, fs};
 use url::Url;
@@ -137,4 +138,15 @@ impl Database {
             .filter_map(|x| x.ok())
             .collect())
     }
+}
+
+pub fn last_modified() -> Result<FileTime> {
+    let path = PathBuf::from("/usr/share/keysync/schedule.db");
+    let metadata = fs::metadata(&path).with_context(|| {
+        format!(
+            "Error getting filetime of file with path: {}",
+            &path.display()
+        )
+    })?;
+    Ok(FileTime::from_last_modification_time(&metadata))
 }

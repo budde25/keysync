@@ -18,10 +18,10 @@ pub fn start() -> anyhow::Result<()> {
     let mut sched: JobScheduler = JobScheduler::new();
     sched = schedule_tasks(sched)?;
     let sleep_time = time::Duration::from_millis(60 * 1000); // 1 minute
-    let mut last_modified = file::schedule_last_modified()?;
+    let mut last_modified = db::last_modified()?;
 
     loop {
-        let new_last_modified = file::schedule_last_modified()?;
+        let new_last_modified = db::last_modified()?;
         if last_modified != new_last_modified {
             last_modified = new_last_modified;
             sched = JobScheduler::new();
@@ -39,7 +39,7 @@ fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
     let database = db::Database::open()?;
     let schedule: Vec<db::Schedule> = database.get_schedules()?;
     for item in schedule {
-        match file::create_file_for_user(Some(&item.user)) {
+        match file::AuthorizedKeys::open(Some(&item.user)) {
             Ok(_) => debug!(
                 "authorized keys file for {} exists or was created",
                 &item.user
@@ -51,11 +51,11 @@ fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
                 );
                 continue;
             }
-        }
+        };
 
         sched.add(Job::new(
             job_scheduler::Schedule::from_str(&item.cron).unwrap(),
-            move || run_job(item.user.to_owned(), item.url.to_owned()),
+            move || run_job(item.to_string().clone(), item.url.to_owned()),
         ));
         println!("Scheduled item");
     }
@@ -73,24 +73,17 @@ fn run_job(user: String, url: String) {
         }
     };
 
+    let auth = file::AuthorizedKeys::open(Some(&user)).unwrap();
     let keys = util::split_keys(&content);
-    let exist = match file::get_current_keys(Some(&user)) {
+    let exist = match auth.get_keys() {
         Ok(key) => key,
         Err(_) => return,
     };
     let keys_to_add: Vec<String> = util::filter_keys(keys, exist);
     let num_keys_to_add: usize = keys_to_add.len();
 
-    match file::create_file_for_user(Some(&user)) {
-        Ok(_) => (),
-        Err(e) => eprint!("failed to create file for user. {}", e),
-    };
-
-    match file::write_keys(keys_to_add, Some(&user)) {
-        Ok(_) => println!(
-            "Added {} to {}'s authorized_keys file",
-            num_keys_to_add, user
-        ),
+    match auth.write_keys(keys_to_add) {
+        Ok(_) => println!("Added {} to a authorized_keys file", num_keys_to_add),
         Err(e) => eprint!("failed to write keys to file. {}", e),
     };
 }
