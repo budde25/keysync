@@ -98,6 +98,9 @@ fn get(m: &ArgMatches) -> Result<()> {
 }
 
 fn set(m: &ArgMatches) -> Result<()> {
+    #[cfg(not(target_os = "linux"))]
+    panic!("Platform not supported");
+
     // Get variables
     let user: String = value_t_or_exit!(m, "user", String);
     let username: String = value_t_or_exit!(m, "username", String);
@@ -142,6 +145,9 @@ fn set(m: &ArgMatches) -> Result<()> {
 }
 
 fn jobs() -> Result<()> {
+    #[cfg(not(target_os = "linux"))]
+    panic!("Platform not supported");
+
     // TODO check if service is running
     let database = Database::open()?;
     let jobs: Vec<db::Schedule> = database.get_schedules()?;
@@ -168,6 +174,9 @@ fn jobs() -> Result<()> {
 }
 
 fn remove(m: &ArgMatches) -> Result<()> {
+    #[cfg(not(target_os = "linux"))]
+    panic!("Platform not supported");
+
     util::run_as_root()?;
     let database = Database::open()?;
     let ids: Vec<u32> = values_t_or_exit!(m, "ids", u32);
