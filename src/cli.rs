@@ -1,6 +1,8 @@
 use clap::{App, AppSettings, Arg, SubCommand};
 use cron::Schedule;
 use std::str::FromStr;
+use url::Url;
+use nix::unistd::User;
 
 #[derive(Debug)]
 pub enum DefaultCron {
@@ -14,11 +16,11 @@ impl FromStr for DefaultCron {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Hourly" => Ok(DefaultCron::Hourly),
-            "Daily" => Ok(DefaultCron::Daily),
-            "Weekly" => Ok(DefaultCron::Weekly),
-            "Monthly" => Ok(DefaultCron::Monthly),
+        match s.to_lowercase().as_str() {
+            "hourly" => Ok(DefaultCron::Hourly),
+            "daily" => Ok(DefaultCron::Daily),
+            "weekly" => Ok(DefaultCron::Weekly),
+            "monthly" => Ok(DefaultCron::Monthly),
             _ => Err("no match"),
         }
     }
@@ -67,7 +69,8 @@ pub fn app() -> App<'static, 'static> {
                 .help("Retrieve from GitLab with optional URL")
                 .value_name("URL")
                 .short("h")
-                .long("gitlab"),
+                .long("gitlab")
+                .validator(is_url),
         );
 
     let set = SubCommand::with_name("set")
@@ -76,7 +79,8 @@ pub fn app() -> App<'static, 'static> {
             Arg::with_name("user")
                 .help("The local user account")
                 .required(true)
-                .index(1),
+                .index(1)
+                .validator(is_user),
         )
         .arg(
             Arg::with_name("username")
@@ -99,7 +103,8 @@ pub fn app() -> App<'static, 'static> {
                 .conflicts_with("schedule")
                 .value_name("CRON")
                 .short("c")
-                .long("cron"),
+                .long("cron")
+                .validator(is_cron),
         )
         .arg(
             Arg::with_name("now")
@@ -124,7 +129,8 @@ pub fn app() -> App<'static, 'static> {
                 .help("Retrieve from GitLab with optional URL")
                 .value_name("URL")
                 .short("h")
-                .long("gitlab"),
+                .long("gitlab")
+                .validator(is_url),
         );
 
     let remove = SubCommand::with_name("remove")
@@ -132,7 +138,8 @@ pub fn app() -> App<'static, 'static> {
         .arg(
             Arg::with_name("ids")
                 .help("Job IDs to remove")
-                .multiple(true),
+                .multiple(true)
+                .validator(is_number),
         );
 
     let jobs = SubCommand::with_name("jobs").about("list enabled jobs");
@@ -165,4 +172,21 @@ pub fn app() -> App<'static, 'static> {
                 .multiple(true)
                 .global(true),
         )
+}
+
+fn is_number(val: String) -> Result<(), String> {
+    val.parse::<usize>().map(|_| ()).map_err(|x| x.to_string())
+}
+
+fn is_url(val: String) -> Result<(), String> {
+    val.parse::<Url>().map(|_| ()).map_err(|x| x.to_string())
+}
+
+fn is_cron(val: String) -> Result<(), String> {
+    val.parse::<Schedule>().map(|_| ()).map_err(|x| x.to_string())
+}
+
+fn is_user(val: String) -> Result<(), String> {
+    let result = User::from_name(&val).map(|r| r).map_err(|x| x.to_string())?;
+    if result.is_none() { Err(format!("user '{}' does not exist", val)) } else {Ok(())}
 }
