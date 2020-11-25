@@ -16,11 +16,11 @@ pub struct AuthorizedKeys {
 
 impl AuthorizedKeys {
     /// Sets up the AuthorizedKeys object
-    pub fn open(user: Option<&str>) -> Result<Self> {
-        let ids: (Uid, Gid) = get_uid_gid(user)?;
+    pub fn open<S: AsRef<str>>(user: Option<S>) -> Result<Self> {
+        let ids: (Uid, Gid) = get_uid_gid(user.as_ref())?;
         // TODO support non default home dir
         let home_dir = if let Some(u) = user {
-            PathBuf::from("/home").join(u)
+            PathBuf::from("/home").join(u.as_ref())
         } else {
             dirs::home_dir().context("Failed to get users home directory")?
         };

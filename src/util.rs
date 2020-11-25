@@ -27,32 +27,6 @@ pub fn clean_keys(original_keys: Vec<String>) -> Vec<String> {
         .collect()
 }
 
-// Returns a list of urls based for each service
-pub fn create_urls(
-    username: &str,
-    mut github: bool,
-    launchpad: bool,
-    gitlab: Option<Url>,
-) -> Vec<String> {
-    // if none are selected default to github
-    if !github && !launchpad && gitlab.is_none() {
-        github = true
-    };
-
-    let mut urls: Vec<String> = vec![];
-    if github {
-        urls.push(http::get_github(username))
-    };
-    if launchpad {
-        urls.push(http::get_launchpad(username))
-    };
-    match gitlab {
-        Some(url) => urls.push(http::get_gitlab(username, Some(url))),
-        None => (),
-    };
-    urls
-}
-
 pub fn run_as_root() -> anyhow::Result<()> {
     if !Uid::current().is_root() {
         match std::process::Command::new("sudo")

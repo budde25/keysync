@@ -65,7 +65,7 @@ fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
 
 fn run_job(user: String, url: String) {
     let network = http::Network::new();
-    let content = match network.get_keys(&url) {
+    let keys = match network.get_keys(&url) {
         Ok(c) => c,
         Err(e) => {
             eprintln!("{}", e);
@@ -74,7 +74,6 @@ fn run_job(user: String, url: String) {
     };
 
     let auth = file::AuthorizedKeys::open(Some(&user)).unwrap();
-    let keys = util::split_keys(&content);
     let exist = match auth.get_keys() {
         Ok(key) => key,
         Err(_) => return,

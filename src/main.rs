@@ -11,6 +11,10 @@ mod file;
 mod http;
 mod util;
 
+use db::Database;
+use file::AuthorizedKeys;
+use http::Network;
+
 fn main() -> anyhow::Result<()> {
     let matches = cli::app().get_matches();
 
@@ -50,35 +54,40 @@ fn main() -> anyhow::Result<()> {
 // Gets the keys from a provider
 fn get(m: &ArgMatches) -> anyhow::Result<()> {
     let username: String = value_t_or_exit!(m, "username", String);
-    let gitlab: Option<Url> = if m.is_present("gitlab") {
-        Some(value_t_or_exit!(m, "gitlab", Url))
-    } else {
-        None
-    };
-    let github: bool = m.is_present("github");
-    let launchpad: bool = m.is_present("launchpad");
-    let dry_run: bool = m.is_present("dry_run");
 
     info!("Getting data for {}", username);
     if Uid::current().is_root() {
         warn!("Running as root will add this to the root users authorized keys file")
     }
 
-    let auth: file::AuthorizedKeys = file::AuthorizedKeys::open(None)?;
+    let gitlab: Option<Url> = if m.is_present("gitlab") {
+        Some(value_t_or_exit!(m, "gitlab", Url))
+    } else {
+        None
+    };
 
-    let mut keys: Vec<String> = vec![];
-    let urls: Vec<String> = util::create_urls(&username, github, launchpad, gitlab);
-    let network = http::Network::new();
-    for url in urls {
-        let response = network.get_keys(&url)?;
-        keys.append(&mut util::split_keys(&response));
-    }
+    let network: Network = Network::new();
 
-    let keys_to_add: Vec<String> = util::filter_keys(keys, auth.get_keys()?);
+    let keys: Vec<String> = network.get_keys_services(
+        username,
+        m.is_present("github"),
+        m.is_present("launchpad"),
+        gitlab,
+    )?;
+
+    let user: Option<String> = if m.is_present("user") {
+        Some(value_t_or_exit!(m, "user", String))
+    } else {
+        None
+    };
+
+    let authorized_keys: AuthorizedKeys = AuthorizedKeys::open(user)?;
+
+    let keys_to_add: Vec<String> = util::filter_keys(keys, authorized_keys.get_keys()?);
     let num_keys_to_add: usize = keys_to_add.len();
 
-    if !dry_run {
-        auth.write_keys(keys_to_add)?;
+    if !m.is_present("dry_run") {
+        authorized_keys.write_keys(keys_to_add)?;
         println!("Added {} new keys", num_keys_to_add);
     } else {
         println!("Found {} new keys", num_keys_to_add);
@@ -102,18 +111,20 @@ fn set(m: &ArgMatches) -> anyhow::Result<()> {
     } else {
         None
     };
-    let github: bool = m.is_present("github");
-    let launchpad: bool = m.is_present("launchpad");
-    let dry_run: bool = m.is_present("dry-run");
 
     util::run_as_root()?;
 
     file::AuthorizedKeys::open(Some(&user))?;
 
-    let urls: Vec<String> = util::create_urls(&username, github, launchpad, gitlab.clone());
+    let urls: Vec<String> = http::create_urls(
+        &username,
+        m.is_present("github"),
+        m.is_present("launchpad"),
+        gitlab,
+    );
 
-    if !dry_run {
-        let database = db::Database::open()?;
+    if !m.is_present("dry-run") {
+        let database = Database::open()?;
         for url in urls {
             database.add_schedule(&user, &cron.to_string(), &url)?;
             println!("Successfully added import schedule with url: {}", url);
@@ -122,15 +133,16 @@ fn set(m: &ArgMatches) -> anyhow::Result<()> {
         println!("Syntax Ok");
     }
 
-    // if now {
-    //     get(username, github, gitlab, launchpad, Some(&user), dry_run)?;
-    // }
+    if m.is_present("now") {
+        get(m)?;
+    }
 
     Ok(())
 }
 
 fn jobs() -> anyhow::Result<()> {
-    let database = db::Database::open()?;
+    // TODO check if service is running
+    let database = Database::open()?;
     let jobs: Vec<db::Schedule> = database.get_schedules()?;
     let total_jobs = jobs.len();
     println!(
