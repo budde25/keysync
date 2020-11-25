@@ -1,4 +1,4 @@
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
 use nix::unistd::Uid;
 
 /// Filters the keys to prevent adding duplicates
@@ -25,7 +25,7 @@ pub fn clean_keys(original_keys: Vec<String>) -> Vec<String> {
         .collect()
 }
 
-pub fn run_as_root() -> anyhow::Result<()> {
+pub fn run_as_root() -> Result<()> {
     if !Uid::current().is_root() {
         match std::process::Command::new("sudo")
             .args(std::env::args())
@@ -36,10 +36,10 @@ pub fn run_as_root() -> anyhow::Result<()> {
                 if output.success() {
                     std::process::exit(0);
                 } else {
-                    return Err(anyhow!("Command failed to request root"));
+                    Err(anyhow!("Command failed to request root"))
                 }
             }
-            Err(_) => return Err(anyhow!("Requires root")),
+            Err(_) => Err(anyhow!("Requires root")),
         }
     } else {
         Ok(())

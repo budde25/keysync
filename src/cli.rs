@@ -189,9 +189,7 @@ fn is_cron(val: String) -> Result<(), String> {
 }
 
 fn is_user(val: String) -> Result<(), String> {
-    let result = User::from_name(&val)
-        .map(|r| r)
-        .map_err(|x| x.to_string())?;
+    let result = User::from_name(&val).map_err(|x| x.to_string())?;
     if result.is_none() {
         Err(format!("user '{}' does not exist", val))
     } else {

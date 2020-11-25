@@ -71,11 +71,7 @@ pub fn create_urls(
     gitlab: Option<Url>,
 ) -> Vec<String> {
     // if none are selected default to github
-    let real_github = if !github && !launchpad && gitlab.is_none() {
-        true
-    } else {
-        false
-    };
+    let real_github = !github && !launchpad && gitlab.is_none();
 
     let mut urls: Vec<String> = vec![];
     if real_github {
@@ -84,10 +80,9 @@ pub fn create_urls(
     if launchpad {
         urls.push(get_launchpad(username))
     };
-    match gitlab {
-        Some(url) => urls.push(get_gitlab(username, Some(url))),
-        None => (),
-    };
+    if let Some(url) = gitlab {
+        urls.push(get_gitlab(username, Some(url)))
+    }
     urls
 }
 

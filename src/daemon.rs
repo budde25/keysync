@@ -55,7 +55,7 @@ fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
 
         sched.add(Job::new(
             job_scheduler::Schedule::from_str(&item.cron).unwrap(),
-            move || run_job(item.to_string().clone(), item.url.to_owned()),
+            move || run_job(item.to_string(), item.url.to_owned()),
         ));
         println!("Scheduled item");
     }

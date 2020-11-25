@@ -1,3 +1,4 @@
+use anyhow::Result;
 use clap::{value_t_or_exit, values_t_or_exit, ArgMatches};
 use cron::Schedule;
 use log::{info, warn};
@@ -15,7 +16,7 @@ use db::Database;
 use file::AuthorizedKeys;
 use http::Network;
 
-fn main() -> anyhow::Result<()> {
+fn main() -> Result<()> {
     let matches = cli::app().get_matches();
 
     // Sets the log level
@@ -52,7 +53,7 @@ fn main() -> anyhow::Result<()> {
 }
 
 // Gets the keys from a provider
-fn get(m: &ArgMatches) -> anyhow::Result<()> {
+fn get(m: &ArgMatches) -> Result<()> {
     let username: String = value_t_or_exit!(m, "username", String);
 
     info!("Getting data for {}", username);
@@ -96,7 +97,7 @@ fn get(m: &ArgMatches) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn set(m: &ArgMatches) -> anyhow::Result<()> {
+fn set(m: &ArgMatches) -> Result<()> {
     // Get variables
     let user: String = value_t_or_exit!(m, "user", String);
     let username: String = value_t_or_exit!(m, "username", String);
@@ -114,7 +115,7 @@ fn set(m: &ArgMatches) -> anyhow::Result<()> {
 
     util::run_as_root()?;
 
-    file::AuthorizedKeys::open(Some(&user))?;
+    AuthorizedKeys::open(Some(&user))?;
 
     let urls: Vec<String> = http::create_urls(
         &username,
@@ -140,7 +141,7 @@ fn set(m: &ArgMatches) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn jobs() -> anyhow::Result<()> {
+fn jobs() -> Result<()> {
     // TODO check if service is running
     let database = Database::open()?;
     let jobs: Vec<db::Schedule> = database.get_schedules()?;
@@ -166,14 +167,14 @@ fn jobs() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn remove(m: &ArgMatches) -> anyhow::Result<()> {
+fn remove(m: &ArgMatches) -> Result<()> {
     util::run_as_root()?;
-    let database = db::Database::open()?;
+    let database = Database::open()?;
     let ids: Vec<u32> = values_t_or_exit!(m, "ids", u32);
     for id in ids {
         database.delete_schedule(id)?;
         println!("Removed job with id: {}", id);
     }
 
-    return Ok(());
+    Ok(())
 }
