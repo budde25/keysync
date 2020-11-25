@@ -1,7 +1,5 @@
-use super::http;
 use anyhow::anyhow;
 use nix::unistd::Uid;
-use url::Url;
 
 /// Filters the keys to prevent adding duplicates
 pub fn filter_keys(to_add: Vec<String>, exist: Vec<String>) -> Vec<String> {

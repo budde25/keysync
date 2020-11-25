@@ -4,7 +4,6 @@ use filetime::FileTime;
 use rusqlite::{params, Connection, NO_PARAMS};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::usize;
 use std::{fmt, fs};
 use url::Url;
 
@@ -37,7 +36,7 @@ impl fmt::Display for Schedule {
 impl Schedule {
     /// Creates a new schedule object and also verifies the types
     pub fn new<S: AsRef<str>>(id: Option<u32>, user: S, cron: S, url: S) -> Result<Self> {
-        if let Err(e) = cron::Schedule::from_str(cron.as_ref()) {
+        if let Err(_) = cron::Schedule::from_str(cron.as_ref()) {
             return Err(anyhow!(
                 "Failed to parse cron expression: {}",
                 cron.as_ref()
