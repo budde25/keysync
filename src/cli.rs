@@ -150,7 +150,7 @@ pub fn app() -> App<'static, 'static> {
     App::new(clap::crate_name!())
         .version(clap::crate_version!())
         .author(clap::crate_authors!())
-        .about("A command line client and service for keeping SHH keys up to date with a list Ex: Github")
+        .about(clap::crate_description!())
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .global_settings(&settings)
         .subcommand(get)
