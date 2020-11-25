@@ -4,6 +4,7 @@ use filetime::FileTime;
 use rusqlite::{params, Connection, NO_PARAMS};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::usize;
 use std::{fmt, fs};
 use url::Url;
 

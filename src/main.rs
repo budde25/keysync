@@ -1,8 +1,8 @@
-use clap::{value_t_or_exit, ArgMatches};
+use clap::{value_t_or_exit, values_t_or_exit, ArgMatches};
 use cron::Schedule;
 use log::{info, warn};
 use nix::unistd::Uid;
-use url::{ParseError, Url};
+use url::Url;
 
 mod cli;
 mod daemon;
@@ -157,28 +157,11 @@ fn jobs() -> anyhow::Result<()> {
 fn remove(m: &ArgMatches) -> anyhow::Result<()> {
     util::run_as_root()?;
     let database = db::Database::open()?;
-    if let Some(ids) = m.values_of("ids") {
-        for id in ids {
-            if let Err(err) = delete_schedule(&database, id) {
-                warn!("Bad input: {}; skipped.", err);
-            }
-        }
+    let ids: Vec<u32> = values_t_or_exit!(m, "ids", u32);
+    for id in ids {
+        database.delete_schedule(id)?;
+        println!("Removed job with id: {}", id);
     }
 
     return Ok(());
-}
-
-fn delete_schedule(database: &db::Database, id: &str) -> anyhow::Result<()> {
-    let id_int = id.to_string().parse::<u32>()?;
-    database.delete_schedule(id_int)?;
-    println!("Removed job with id: {}", id_int);
-    Ok(())
-}
-
-fn parse_url(src: &str) -> Result<Url, ParseError> {
-    if src.contains("http") {
-        Url::parse(src)
-    } else {
-        Url::parse(&("https://".to_owned() + src))
-    }
 }

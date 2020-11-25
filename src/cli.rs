@@ -1,8 +1,8 @@
 use clap::{App, AppSettings, Arg, SubCommand};
 use cron::Schedule;
+use nix::unistd::User;
 use std::str::FromStr;
 use url::Url;
-use nix::unistd::User;
 
 #[derive(Debug)]
 pub enum DefaultCron {
@@ -175,7 +175,7 @@ pub fn app() -> App<'static, 'static> {
 }
 
 fn is_number(val: String) -> Result<(), String> {
-    val.parse::<usize>().map(|_| ()).map_err(|x| x.to_string())
+    val.parse::<u32>().map(|_| ()).map_err(|x| x.to_string())
 }
 
 fn is_url(val: String) -> Result<(), String> {
@@ -183,10 +183,18 @@ fn is_url(val: String) -> Result<(), String> {
 }
 
 fn is_cron(val: String) -> Result<(), String> {
-    val.parse::<Schedule>().map(|_| ()).map_err(|x| x.to_string())
+    val.parse::<Schedule>()
+        .map(|_| ())
+        .map_err(|x| x.to_string())
 }
 
 fn is_user(val: String) -> Result<(), String> {
-    let result = User::from_name(&val).map(|r| r).map_err(|x| x.to_string())?;
-    if result.is_none() { Err(format!("user '{}' does not exist", val)) } else {Ok(())}
+    let result = User::from_name(&val)
+        .map(|r| r)
+        .map_err(|x| x.to_string())?;
+    if result.is_none() {
+        Err(format!("user '{}' does not exist", val))
+    } else {
+        Ok(())
+    }
 }
