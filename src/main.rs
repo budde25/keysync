@@ -12,6 +12,7 @@ mod file;
 mod http;
 mod util;
 
+use daemon::Daemon;
 use db::Database;
 use file::AuthorizedKeys;
 use http::Network;
@@ -45,7 +46,10 @@ fn main() -> Result<()> {
         ("set", Some(m)) => set(m)?,
         ("jobs", Some(_)) => jobs()?,
         ("remove", Some(m)) => remove(m)?,
-        ("daemon", Some(_)) => daemon::start()?,
+        ("daemon", Some(_)) => {
+            let mut daemon = Daemon::new()?;
+            daemon.start();
+        }
         _ => unreachable!(),
     }
 

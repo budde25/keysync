@@ -1,88 +1,142 @@
-use super::http;
-use job_scheduler::Job;
-use job_scheduler::JobScheduler;
-use log::{debug, error};
+use anyhow::Result;
+use filetime::FileTime;
+use job_scheduler::{Job, JobScheduler};
+use log::{debug, error, info};
 use std::str::FromStr;
-use std::{thread, time};
+use std::thread::sleep;
+use std::time::Duration;
+use url::Url;
 
 use super::db;
 use super::file;
+use super::http;
 use super::util;
 
-pub fn start() -> anyhow::Result<()> {
-    {
-        // Putting it its own scope allow it to release the connection right after creating the database
-        db::Database::open()?;
-    }
+use db::{last_modified, Database, Schedule};
+use file::AuthorizedKeys;
+use http::Network;
 
-    let mut sched: JobScheduler = JobScheduler::new();
-    sched = schedule_tasks(sched)?;
-    let sleep_time = time::Duration::from_millis(60 * 1000); // 1 minute
-    let mut last_modified = db::last_modified()?;
-
-    loop {
-        let new_last_modified = db::last_modified()?;
-        if last_modified != new_last_modified {
-            last_modified = new_last_modified;
-            sched = JobScheduler::new();
-            sched = schedule_tasks(sched)?;
-        }
-
-        sched.tick();
-
-        thread::sleep(sleep_time);
-    }
+pub struct Daemon {
+    sleep_time: Duration,
+    scheduler: JobScheduler<'static>,
+    last_modifided: FileTime,
 }
 
-fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
-    println!("Scheduling jobs");
-    let database = db::Database::open()?;
-    let schedule: Vec<db::Schedule> = database.get_schedules()?;
-    for item in schedule {
-        match file::AuthorizedKeys::open(Some(&item.user)) {
-            Ok(_) => debug!(
-                "authorized keys file for {} exists or was created",
-                &item.user
-            ),
+impl Daemon {
+    pub fn new() -> Result<Self> {
+        Database::open()?;
+        let scheduler: JobScheduler = JobScheduler::new();
+        let sleep_time: Duration = Duration::from_secs(60); // 1 minute
+        let last_modifided: FileTime = last_modified()?;
+        Ok(Daemon {
+            sleep_time,
+            scheduler,
+            last_modifided,
+        })
+    }
+
+    pub fn start(&mut self) {
+        self.schedule();
+        loop {
+            let modified: FileTime = last_modified().unwrap_or(self.last_modifided);
+            if self.last_modifided != modified {
+                self.last_modifided = modified;
+                let scheduler: JobScheduler = JobScheduler::new();
+                // Schedule tasks
+                self.schedule();
+                self.scheduler = scheduler;
+            }
+            self.scheduler.tick();
+            sleep(self.sleep_time);
+        }
+    }
+
+    fn schedule(&mut self) {
+        info!("Scheduling jobs");
+        let database: Database = match Database::open() {
+            Ok(d) => d,
             Err(e) => {
-                error!(
-                    "Unable to create authorized keys file for user {}. {}",
-                    &item.user, e
-                );
-                continue;
+                error!("{}", e);
+                return;
             }
         };
 
-        sched.add(Job::new(
-            job_scheduler::Schedule::from_str(&item.cron).unwrap(),
-            move || run_job(item.to_string(), item.url.to_owned()),
-        ));
-        println!("Scheduled item");
-    }
+        let schedules: Vec<Schedule> = match database.get_schedules() {
+            Ok(d) => d,
+            Err(e) => {
+                error!("{}", e);
+                return;
+            }
+        };
 
-    Ok(sched)
+        for schedule in schedules {
+            let user: String = schedule.user.to_string();
+            let url: Url = match Url::parse(&schedule.url) {
+                Ok(u) => u,
+                Err(e) => {
+                    error!("{}", e);
+                    continue;
+                }
+            };
+
+            match AuthorizedKeys::open(Some(&user)) {
+                Ok(_) => debug!("authorized keys file for {} exists or was created", &user),
+                Err(e) => {
+                    error!(
+                        "Unable to create authorized keys file for user {}. {}",
+                        &user, e
+                    );
+                    continue;
+                }
+            }
+
+            let cron = match job_scheduler::Schedule::from_str(&schedule.cron) {
+                Ok(c) => c,
+                Err(e) => {
+                    error!("{}", e);
+                    continue;
+                }
+            };
+
+            let job = Job::new(cron, move || run_job(user.to_owned(), url.to_owned()));
+            self.scheduler.add(job);
+        }
+    }
 }
 
-fn run_job(user: String, url: String) {
-    let network = http::Network::new();
+fn run_job(user: String, url: Url) {
+    let network = Network::new();
     let keys = match network.get_keys(&url) {
         Ok(c) => c,
         Err(e) => {
-            eprintln!("{}", e);
+            error!("{}", e);
             return;
         }
     };
 
-    let auth = file::AuthorizedKeys::open(Some(&user)).unwrap();
-    let exist = match auth.get_keys() {
+    let authorzed_keys = match AuthorizedKeys::open(Some(&user)) {
+        Ok(a) => a,
+        Err(e) => {
+            error!("{}", e);
+            return;
+        }
+    };
+
+    let exist = match authorzed_keys.get_keys() {
         Ok(key) => key,
-        Err(_) => return,
+        Err(e) => {
+            error!("{}", e);
+            return;
+        }
     };
     let keys_to_add: Vec<String> = util::filter_keys(keys, exist);
     let num_keys_to_add: usize = keys_to_add.len();
 
-    match auth.write_keys(keys_to_add) {
-        Ok(_) => println!("Added {} to a authorized_keys file", num_keys_to_add),
-        Err(e) => eprint!("failed to write keys to file. {}", e),
+    match authorzed_keys.write_keys(keys_to_add) {
+        Ok(_) => println!(
+            "Added {} keys to a {} authorized_keys file",
+            user, num_keys_to_add
+        ),
+        Err(e) => error!("{}", e),
     };
 }
