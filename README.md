@@ -38,7 +38,7 @@ SUBCOMMANDS:
     set     Add an automatic job
 ```
 
-Use `keysync <subcommand> help` for help with that subcommand.
+Use `keysync help <subcommand>` for help with that subcommand.
   
 Examples:  
 `keysync get <username>` Downloads the public keys from github for the username.  
