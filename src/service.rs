@@ -83,14 +83,7 @@ pub fn install_service() -> Result<()> {
     let mut file = File::create(path)?;
     let bin = current_exe()?;
     let text = format!(
-        "[Unit]
-    Description=The SSH Key Sync service
-    After=network.target
-    [Service]
-    ExecStart={} daemon
-    Type=simple
-    [Install]
-    WantedBy=multi-user.service",
+    "[Unit]\nDescription=The SSH Key Sync service\nAfter=network.target\n[Service]\nExecStart={} daemon\nType=simple\n[Install]\nWantedBy=multi-user.service",
         bin.display()
     );
     file.write_all(text.as_bytes())?;
