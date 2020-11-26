@@ -3,7 +3,7 @@ use std::env::current_exe;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 use super::util;
 
@@ -55,6 +55,8 @@ fn get_service_status() -> Result<KeysyncService> {
     let mut cmd = Command::new("systemctl")
         .arg("status")
         .arg(SERVICE_NAME)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .spawn()
         .context("Error spawning systemctl, is Systemd installed?")?;
     let code = cmd.wait()?.code().unwrap_or(0);
@@ -85,7 +87,7 @@ pub fn install_service() -> Result<()> {
     Description=The SSH Key Sync service
     After=network.target
     [Service]
-    ExecStart={} --daemon
+    ExecStart={} daemon
     Type=simple
     [Install]
     WantedBy=multi-user.service",
