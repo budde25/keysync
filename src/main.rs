@@ -10,6 +10,7 @@ mod daemon;
 mod db;
 mod file;
 mod http;
+mod service;
 mod util;
 
 use daemon::Daemon;
@@ -46,10 +47,7 @@ fn main() -> Result<()> {
         ("set", Some(m)) => set(m)?,
         ("jobs", Some(_)) => jobs()?,
         ("remove", Some(m)) => remove(m)?,
-        ("daemon", Some(_)) => {
-            let mut daemon = Daemon::new()?;
-            daemon.start();
-        }
+        ("daemon", Some(m)) => daemon(m)?,
         _ => unreachable!(),
     }
 
@@ -120,6 +118,8 @@ fn set(m: &ArgMatches) -> Result<()> {
         None
     };
 
+    service::check()?;
+
     util::run_as_root()?;
 
     AuthorizedKeys::open(Some(&user))?;
@@ -152,6 +152,8 @@ fn jobs() -> Result<()> {
     #[cfg(not(target_os = "linux"))]
     panic!("Platform not supported");
 
+    service::check()?;
+
     // TODO check if service is running
     let database = Database::open()?;
     let jobs: Vec<db::Schedule> = database.get_schedules()?;
@@ -181,6 +183,8 @@ fn remove(m: &ArgMatches) -> Result<()> {
     #[cfg(not(target_os = "linux"))]
     panic!("Platform not supported");
 
+    service::check()?;
+
     util::run_as_root()?;
     let database = Database::open()?;
     let ids: Vec<u32> = values_t_or_exit!(m, "ids", u32);
@@ -189,5 +193,25 @@ fn remove(m: &ArgMatches) -> Result<()> {
         println!("Removed job with id: {}", id);
     }
 
+    Ok(())
+}
+
+fn daemon(m: &ArgMatches) -> Result<()> {
+    let install = m.is_present("install");
+    let enable = m.is_present("enable");
+
+    if install {
+        service::install_service()?;
+    }
+    if enable {
+        service::enable_service()?;
+    }
+
+    if install || enable {
+        return Ok(());
+    }
+
+    let mut daemon = Daemon::new()?;
+    daemon.start();
     Ok(())
 }

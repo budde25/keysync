@@ -1,5 +1,7 @@
 use anyhow::{anyhow, Result};
 use nix::unistd::Uid;
+use rustyline::error::ReadlineError;
+use rustyline::Editor;
 
 /// Filters the keys to prevent adding duplicates
 pub fn filter_keys(to_add: Vec<String>, exist: Vec<String>) -> Vec<String> {
@@ -44,6 +46,31 @@ pub fn run_as_root() -> Result<()> {
     } else {
         Ok(())
     }
+}
+
+pub fn get_confirmation(warning: &str) -> Result<bool> {
+    let mut rl = Editor::<()>::new();
+    let prompt = format!("{} (Y/n)\n>> ", warning);
+    let readline = rl.readline(&prompt);
+
+    match readline {
+        Ok(line) => {
+            let clean_line = line.trim().to_lowercase();
+            if clean_line == "y" || clean_line == "yes" {
+                return Ok(true);
+            }
+        }
+        Err(ReadlineError::Interrupted) => {
+            println!("CTRL-C");
+        }
+        Err(ReadlineError::Eof) => {
+            println!("CTRL-D");
+        }
+        Err(err) => {
+            println!("Error: {:?}", err);
+        }
+    }
+    Ok(false)
 }
 
 // TESTS
