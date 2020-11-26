@@ -1,6 +1,5 @@
 use anyhow::{anyhow, Result};
 use nix::unistd::Uid;
-use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
 /// Filters the keys to prevent adding duplicates
