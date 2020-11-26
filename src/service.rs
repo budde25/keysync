@@ -73,6 +73,8 @@ pub fn enable_service() -> Result<bool> {
         .arg("enable")
         .arg("--now")
         .arg(SERVICE_NAME)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .spawn()
         .context("Error spawning systemctl, is Systemd installed?")?;
     Ok(cmd.wait()?.success())

@@ -60,12 +60,6 @@ pub fn get_confirmation(warning: &str) -> Result<bool> {
                 return Ok(true);
             }
         }
-        Err(ReadlineError::Interrupted) => {
-            println!("CTRL-C");
-        }
-        Err(ReadlineError::Eof) => {
-            println!("CTRL-D");
-        }
         Err(err) => {
             println!("Error: {:?}", err);
         }

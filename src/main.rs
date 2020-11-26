@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::{value_t_or_exit, values_t_or_exit, ArgMatches};
 use cron::Schedule;
 use log::{info, warn};
@@ -197,14 +197,17 @@ fn remove(m: &ArgMatches) -> Result<()> {
 }
 
 fn daemon(m: &ArgMatches) -> Result<()> {
+    #[cfg(not(target_os = "linux"))]
+    panic!("Platform not supported");
+
     let install = m.is_present("install");
     let enable = m.is_present("enable");
 
     if install {
         service::install_service()?;
     }
-    if enable {
-        service::enable_service()?;
+    if enable && !service::enable_service()? {
+        return Err(anyhow!("Failed to enable keysync service"));
     }
 
     if install || enable {
