@@ -180,6 +180,18 @@ mod tests {
     }
 
     #[test]
+    fn test_create_urls_only_github() {
+        let urls = create_urls("budde25", true, false, false, None);
+        assert_eq!(urls.len(), 1);
+    }
+
+    #[test]
+    fn test_create_urls_only_launchpad() {
+        let urls = create_urls("budde25", false, true, false, None);
+        assert_eq!(urls.len(), 1);
+    }
+
+    #[test]
     fn test_create_urls_no_gitlab_but_url() {
         let gitlab_url = Url::parse("https://gitlab.com").unwrap();
         let urls = create_urls("budde25", false, false, false, Some(gitlab_url));
