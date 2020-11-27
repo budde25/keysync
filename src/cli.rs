@@ -70,7 +70,8 @@ pub fn app() -> App<'static, 'static> {
                 .value_name("URL")
                 .short("h")
                 .long("gitlab")
-                .validator(is_url),
+                .empty_values(true)
+                .validator(is_url_or_empty),
         );
 
     let set = SubCommand::with_name("set")
@@ -129,8 +130,8 @@ pub fn app() -> App<'static, 'static> {
                 .help("Retrieve from GitLab with optional URL")
                 .value_name("URL")
                 .short("h")
-                .long("gitlab")
-                .validator(is_url),
+                .long("gitlab").empty_values(true)
+                .validator(is_url_or_empty),
         );
 
     let remove = SubCommand::with_name("remove")
@@ -188,7 +189,8 @@ fn is_number(val: String) -> Result<(), String> {
     val.parse::<u32>().map(|_| ()).map_err(|x| x.to_string())
 }
 
-fn is_url(val: String) -> Result<(), String> {
+fn is_url_or_empty(val: String) -> Result<(), String> {
+    if val.is_empty() { return Ok(()); }
     val.parse::<Url>().map(|_| ()).map_err(|x| x.to_string())
 }
 

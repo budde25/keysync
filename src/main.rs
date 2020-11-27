@@ -63,10 +63,14 @@ fn get(m: &ArgMatches) -> Result<()> {
         warn!("Running as root will add this to the root users authorized keys file")
     }
 
-    let gitlab: Option<Url> = if m.is_present("gitlab") {
-        Some(value_t_or_exit!(m, "gitlab", Url))
+    let mut gitlab_url: Option<Url> = None;
+    let gitlab: bool = if let Some(u) = m.value_of("gitlab") {
+        if !u.is_empty() {
+            gitlab_url = Some(Url::parse(u)?);
+        }
+        true
     } else {
-        None
+        false
     };
 
     let network: Network = Network::new();
@@ -76,6 +80,7 @@ fn get(m: &ArgMatches) -> Result<()> {
         m.is_present("github"),
         m.is_present("launchpad"),
         gitlab,
+        gitlab_url
     )?;
 
     let user: Option<String> = if m.is_present("user") {
@@ -112,10 +117,15 @@ fn set(m: &ArgMatches) -> Result<()> {
         let default_cron = value_t_or_exit!(m, "schedule", cli::DefaultCron);
         default_cron.to_schedule()
     };
-    let gitlab: Option<Url> = if m.is_present("gitlab") {
-        Some(value_t_or_exit!(m, "gitlab", Url))
+
+    let mut gitlab_url: Option<Url> = None;
+    let gitlab: bool = if let Some(u) = m.value_of("gitlab") {
+        if !u.is_empty() {
+            gitlab_url = Some(Url::parse(u)?);
+        }
+        true
     } else {
-        None
+        false
     };
 
     service::check()?;
@@ -129,6 +139,7 @@ fn set(m: &ArgMatches) -> Result<()> {
         m.is_present("github"),
         m.is_present("launchpad"),
         gitlab,
+        gitlab_url,
     );
 
     if !m.is_present("dry-run") {

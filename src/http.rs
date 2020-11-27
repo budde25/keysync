@@ -48,10 +48,11 @@ impl Network {
         username: S,
         github: bool,
         launchpad: bool,
-        gitlab: Option<Url>,
+        gitlab: bool,
+        gitlab_url: Option<Url>
     ) -> Result<Vec<String>> {
         let mut all_keys: Vec<String> = vec![];
-        let urls: Vec<String> = create_urls(username.as_ref(), github, launchpad, gitlab);
+        let urls: Vec<String> = create_urls(username.as_ref(), github, launchpad, gitlab, gitlab_url);
         for url in urls {
             let mut keys = self.get_keys(url)?;
             all_keys.append(&mut keys);
@@ -68,21 +69,22 @@ pub fn create_urls(
     username: &str,
     github: bool,
     launchpad: bool,
-    gitlab: Option<Url>,
+    gitlab: bool,
+    gitlab_url: Option<Url>,
 ) -> Vec<String> {
     // if none are selected default to github
-    let real_github = !github && !launchpad && gitlab.is_none();
+    let real_github = !github && !launchpad && !gitlab;
 
     let mut urls: Vec<String> = vec![];
-    if real_github {
+    if real_github || github {
         urls.push(get_github(username))
     };
     if launchpad {
         urls.push(get_launchpad(username))
     };
-    if let Some(url) = gitlab {
-        urls.push(get_gitlab(username, Some(url)))
-    }
+    if gitlab {
+        urls.push(get_gitlab(username, gitlab_url))
+    };
     urls
 }
 
@@ -105,11 +107,10 @@ fn get_launchpad(username: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use url::Url;
 
     #[test]
     #[ignore]
-    fn get_github_budde25() {
+    fn test_get_github_budde25() {
         let n = Network::new();
         let url = get_github("budde25");
         n.get_keys(&url)
@@ -118,7 +119,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn get_gitlab_budde25() {
+    fn test_get_gitlab_budde25() {
         let n = Network::new();
         let url = get_gitlab("budde25", None);
         n.get_keys(&url)
@@ -127,7 +128,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn get_wisc_gitlab_budd() {
+    fn test_get_wisc_gitlab_budd() {
         let n = Network::new();
         let url = get_gitlab(
             "budde25",
@@ -139,15 +140,15 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn get_invalid_url() {
+    fn test_get_invalid_url() {
         let n = Network::new();
         let url = get_gitlab("budde25", Some(Url::parse("https://abc.edu/").unwrap()));
         n.get_keys(&url)
-            .expect("Args are valid should return a result");
+            .expect_err("Args not valid should not return result, 404");
     }
 
     #[test]
-    fn url_completion() {
+    fn test_url_completion() {
         assert_eq!(&get_github("budde25"), "https://github.com/budde25.keys");
         assert_eq!(
             &get_gitlab("budde25", None),
@@ -164,5 +165,25 @@ mod tests {
             &get_launchpad("budde25"),
             "https://launchpad.net/~budde25/+sshkeys"
         );
+    }
+
+    #[test]
+    fn test_create_urls_all() {
+        let urls = create_urls("budde25", true, true, true, None);
+        assert_eq!(urls.len(), 3);
+    }
+
+    #[test]
+    fn test_create_urls_none() {
+        let urls = create_urls("budde25", false, false, false, None);
+        assert_eq!(urls.len(), 1);
+    }
+
+    #[test]
+    fn test_create_urls_no_gitlab_but_url() {
+        let gitlab_url = Url::parse("https://gitlab.com").unwrap();
+        let urls = create_urls("budde25", false, false, false, Some(gitlab_url));
+        assert_eq!(urls.len(), 1);
+        assert_eq!(urls[0], "https://github.com/budde25.keys");
     }
 }
