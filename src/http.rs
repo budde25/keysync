@@ -1,10 +1,10 @@
 use super::util;
 use anyhow::{anyhow, Context, Result};
+use log::{debug, info};
 use reqwest::{Client, ClientBuilder, Error, Response};
 use std::time::Duration;
 use std::vec;
 use url::Url;
-use log::{info, debug};
 
 const GITHUB_URL: &str = "https://github.com/";
 const GITLAB_URL: &str = "https://gitlab.com/";
@@ -22,7 +22,7 @@ impl Network {
         let network = Network {
             client: ClientBuilder::new().timeout(timeout).build().unwrap(),
         };
-        info!("Created Network  object");
+        info!("Created Network object");
         network
     }
 
@@ -56,10 +56,11 @@ impl Network {
         github: bool,
         launchpad: bool,
         gitlab: bool,
-        gitlab_url: Option<Url>
+        gitlab_url: Option<Url>,
     ) -> Result<Vec<String>> {
         let mut all_keys: Vec<String> = vec![];
-        let urls: Vec<String> = create_urls(username.as_ref(), github, launchpad, gitlab, gitlab_url);
+        let urls: Vec<String> =
+            create_urls(username.as_ref(), github, launchpad, gitlab, gitlab_url);
         for url in urls {
             let mut keys = self.get_keys(url)?;
             all_keys.append(&mut keys);
@@ -82,7 +83,10 @@ pub fn create_urls(
 ) -> Vec<String> {
     // if none are selected default to GitHub
     let real_github = !github && !launchpad && !gitlab;
-    debug!("Creating URLS with username: {} for GitHub: {}, Launchpad: {}, Gitlab: {}, URL: {:?}", username, github, launchpad, gitlab, gitlab_url);
+    debug!(
+        "Creating URLS with username: {} for GitHub: {}, Launchpad: {}, Gitlab: {}, URL: {:?}",
+        username, github, launchpad, gitlab, gitlab_url
+    );
 
     let mut urls: Vec<String> = vec![];
     if real_github || github {
@@ -98,7 +102,7 @@ pub fn create_urls(
     urls
 }
 
-/// Creates a GitHub keys url with a username 
+/// Creates a GitHub keys url with a username
 fn get_github(username: &str) -> String {
     let url = format!("{}{}.keys", GITHUB_URL, username);
     debug!("GitHub URL: {}", url);
@@ -126,6 +130,7 @@ fn get_launchpad(username: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
 
     /// Tests that we can get keys from a valid GitHub user
     #[test]
@@ -160,7 +165,7 @@ mod tests {
             .expect("Args are valid should return a result");
     }
 
-    /// Tests that we cannot get keys from a invalid GitHub user/url 
+    /// Tests that we cannot get keys from a invalid GitHub user/url
     #[test]
     #[ignore]
     fn test_get_invalid_url() {
@@ -227,5 +232,20 @@ mod tests {
         let urls = create_urls("budde25", false, false, false, Some(gitlab_url));
         assert_eq!(urls.len(), 1);
         assert_eq!(urls[0], "https://github.com/budde25.keys");
+    }
+
+    // Tests that weird charecters don't crash url generation
+    proptest! {
+        #[test]
+        fn test_gen_produces_valid_url(s in "\\PC*") {
+            let github = get_github(&s);
+            Url::parse(&github).expect("URL should be valid");
+
+            let launchpad = get_launchpad(&s);
+            Url::parse(&launchpad).expect("URL should be valid");
+
+            let gitlab = get_gitlab(&s, None);
+            Url::parse(&gitlab).expect("URL should be valid");
+        }
     }
 }

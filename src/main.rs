@@ -80,7 +80,7 @@ fn get(m: &ArgMatches) -> Result<()> {
         m.is_present("github"),
         m.is_present("launchpad"),
         gitlab,
-        gitlab_url
+        gitlab_url,
     )?;
 
     let user: Option<String> = if m.is_present("user") {

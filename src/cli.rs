@@ -130,7 +130,8 @@ pub fn app() -> App<'static, 'static> {
                 .help("Retrieve from GitLab with optional URL")
                 .value_name("URL")
                 .short("h")
-                .long("gitlab").empty_values(true)
+                .long("gitlab")
+                .empty_values(true)
                 .validator(is_url_or_empty),
         );
 
@@ -190,7 +191,9 @@ fn is_number(val: String) -> Result<(), String> {
 }
 
 fn is_url_or_empty(val: String) -> Result<(), String> {
-    if val.is_empty() { return Ok(()); }
+    if val.is_empty() {
+        return Ok(());
+    }
     val.parse::<Url>().map(|_| ()).map_err(|x| x.to_string())
 }
 
