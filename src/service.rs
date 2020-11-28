@@ -69,7 +69,7 @@ fn get_service_status() -> Result<KeysyncService> {
     match code {
         0 => Ok(KeysyncService::Active),
         1 | 2 | 3 => Ok(KeysyncService::Stopped),
-        4 | _ => Ok(KeysyncService::NotInstalled),
+        _ => Ok(KeysyncService::NotInstalled), // Aka 4
     }
 }
 
