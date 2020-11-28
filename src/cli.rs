@@ -4,7 +4,6 @@ use nix::unistd::User;
 use std::str::FromStr;
 use url::Url;
 
-
 /// Struct of default key downloading schedules
 #[derive(Debug)]
 pub enum DefaultCron {
@@ -44,9 +43,9 @@ impl DefaultCron {
 /// Generate the programs CLI
 pub fn app() -> App<'static, 'static> {
     let settings = [
-        AppSettings::ColoredHelp,               // Displays color, (not on windows)
-        AppSettings::InferSubcommands,          // Hints
-        AppSettings::VersionlessSubcommands,    // No -V on subcommands
+        AppSettings::ColoredHelp,            // Displays color, (not on windows)
+        AppSettings::InferSubcommands,       // Hints
+        AppSettings::VersionlessSubcommands, // No -V on subcommands
     ];
 
     let get = SubCommand::with_name("get")

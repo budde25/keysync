@@ -1,10 +1,9 @@
 use anyhow::{Context, Result};
 use log::info;
 use nix::unistd::{chown, Gid, Uid, User};
-use std::fs;
-use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
+use std::{fs, fs::File};
 
 use super::util;
 

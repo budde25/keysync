@@ -1,10 +1,11 @@
-use super::util;
 use anyhow::{anyhow, Context, Result};
 use log::{debug, info};
 use reqwest::{Client, ClientBuilder, Error, Response};
 use std::time::Duration;
 use std::vec;
 use url::Url;
+
+use super::util;
 
 const GITHUB_URL: &str = "https://github.com/";
 const GITLAB_URL: &str = "https://gitlab.com/";

@@ -2,19 +2,13 @@ use anyhow::Result;
 use filetime::FileTime;
 use job_scheduler::{Job, JobScheduler};
 use log::{debug, error, info};
-use std::str::FromStr;
-use std::thread::sleep;
-use std::time::Duration;
+use std::{str::FromStr, thread::sleep, time::Duration};
 use url::Url;
 
-use super::db;
-use super::file;
-use super::http;
+use super::db::{last_modified, Database, Schedule};
+use super::file::AuthorizedKeys;
+use super::http::Network;
 use super::util;
-
-use db::{last_modified, Database, Schedule};
-use file::AuthorizedKeys;
-use http::Network;
 
 pub struct Daemon {
     sleep_time: Duration,

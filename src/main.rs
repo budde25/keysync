@@ -1,10 +1,3 @@
-use anyhow::{anyhow, Result};
-use clap::{value_t_or_exit, values_t_or_exit, ArgMatches};
-use cron::Schedule;
-use log::{info, warn};
-use nix::unistd::Uid;
-use url::Url;
-
 mod cli;
 mod daemon;
 mod db;
@@ -12,6 +5,13 @@ mod file;
 mod http;
 mod service;
 mod util;
+
+use anyhow::{anyhow, Result};
+use clap::{value_t_or_exit, values_t_or_exit, ArgMatches};
+use cron::Schedule;
+use log::{info, warn};
+use nix::unistd::Uid;
+use url::Url;
 
 use daemon::Daemon;
 use db::Database;

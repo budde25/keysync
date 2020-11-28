@@ -1,9 +1,11 @@
 use anyhow::{anyhow, Context, Result};
 use filetime::FileTime;
 use rusqlite::{params, Connection, NO_PARAMS};
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
-use std::{fmt, fs};
+use std::{
+    fmt, fs,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 use url::Url;
 
 /// A Schedule representation
