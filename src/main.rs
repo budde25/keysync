@@ -93,15 +93,9 @@ fn get(m: &ArgMatches) -> Result<()> {
 
     let authorized_keys: AuthorizedKeys = AuthorizedKeys::open(user)?;
 
-    let keys_to_add: Vec<String> = util::filter_keys(keys, authorized_keys.get_keys()?);
-    let num_keys_to_add: usize = keys_to_add.len();
-
-    if !m.is_present("dry_run") {
-        authorized_keys.write_keys(keys_to_add)?;
-        println!("Added {} new keys", num_keys_to_add);
-    } else {
-        println!("Found {} new keys", num_keys_to_add);
-    }
+    let dry_run = m.is_present("dry_run");
+    let count = authorized_keys.write_keys(keys, dry_run)?;
+    println!("{} {} new keys", if dry_run {"Found"} else {"Added"}, count);
 
     Ok(())
 }

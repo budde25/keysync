@@ -8,7 +8,6 @@ use url::Url;
 use super::db::{last_modified, Database, Schedule};
 use super::file::AuthorizedKeys;
 use super::http::Network;
-use super::util;
 
 /// An implementation of the daemon
 pub struct Daemon {
@@ -121,20 +120,10 @@ fn run_job(user: String, url: Url) {
         }
     };
 
-    let exist = match authorzed_keys.get_keys() {
-        Ok(key) => key,
-        Err(e) => {
-            error!("{}", e);
-            return;
-        }
-    };
-    let keys_to_add: Vec<String> = util::filter_keys(keys, exist);
-    let num_keys_to_add: usize = keys_to_add.len();
-
-    match authorzed_keys.write_keys(keys_to_add) {
-        Ok(_) => println!(
+    match authorzed_keys.write_keys(keys,false) {
+        Ok(count) => println!(
             "Added {} keys to a {} authorized_keys file",
-            user, num_keys_to_add
+            user, count
         ),
         Err(e) => error!("{}", e),
     };
