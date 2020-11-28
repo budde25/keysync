@@ -4,6 +4,8 @@ use nix::unistd::User;
 use std::str::FromStr;
 use url::Url;
 
+
+/// Struct of default key downloading schedules
 #[derive(Debug)]
 pub enum DefaultCron {
     Hourly,
@@ -12,6 +14,7 @@ pub enum DefaultCron {
     Monthly,
 }
 
+/// FromStr implementation
 impl FromStr for DefaultCron {
     type Err = &'static str;
 
@@ -26,6 +29,7 @@ impl FromStr for DefaultCron {
     }
 }
 
+/// Turns the defaults into a Cron Schedule
 impl DefaultCron {
     pub fn to_schedule(&self) -> Schedule {
         match self {
@@ -37,11 +41,12 @@ impl DefaultCron {
     }
 }
 
+/// Generate the programs CLI
 pub fn app() -> App<'static, 'static> {
     let settings = [
-        AppSettings::ColoredHelp,
-        AppSettings::InferSubcommands,
-        AppSettings::VersionlessSubcommands,
+        AppSettings::ColoredHelp,               // Displays color, (not on windows)
+        AppSettings::InferSubcommands,          // Hints
+        AppSettings::VersionlessSubcommands,    // No -V on subcommands
     ];
 
     let get = SubCommand::with_name("get")
@@ -186,10 +191,12 @@ pub fn app() -> App<'static, 'static> {
         )
 }
 
+/// Custom validator, returns () if val is u32, error otherwise
 fn is_number(val: String) -> Result<(), String> {
     val.parse::<u32>().map(|_| ()).map_err(|x| x.to_string())
 }
 
+/// Custom validator, returns () if val is a valid url or empty string, error otherwise
 fn is_url_or_empty(val: String) -> Result<(), String> {
     if val.is_empty() {
         return Ok(());
@@ -197,12 +204,14 @@ fn is_url_or_empty(val: String) -> Result<(), String> {
     val.parse::<Url>().map(|_| ()).map_err(|x| x.to_string())
 }
 
+/// Custom validator, returns () if val is valid cron schedule, error otherwise
 fn is_cron(val: String) -> Result<(), String> {
     val.parse::<Schedule>()
         .map(|_| ())
         .map_err(|x| x.to_string())
 }
 
+/// Custom validator, returns () if val the user exists on the system, error otherwise
 fn is_user(val: String) -> Result<(), String> {
     let result = User::from_name(&val).map_err(|x| x.to_string())?;
     if result.is_none() {
