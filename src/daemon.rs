@@ -10,6 +10,7 @@ use super::file::AuthorizedKeys;
 use super::http::Network;
 use super::util;
 
+/// An implementation of the daemon
 pub struct Daemon {
     sleep_time: Duration,
     scheduler: JobScheduler<'static>,
@@ -17,6 +18,7 @@ pub struct Daemon {
 }
 
 impl Daemon {
+    /// Creates a new daemon
     pub fn new() -> Result<Self> {
         Database::open()?;
         let scheduler: JobScheduler = JobScheduler::new();
@@ -29,6 +31,7 @@ impl Daemon {
         })
     }
 
+    /// Starts the daemon
     pub fn start(&mut self) {
         self.schedule();
         loop {
@@ -45,6 +48,7 @@ impl Daemon {
         }
     }
 
+    /// Adds a new job the the job schedule
     fn schedule(&mut self) {
         info!("Scheduling jobs");
         let database: Database = match Database::open() {
@@ -98,6 +102,7 @@ impl Daemon {
     }
 }
 
+/// Runs a job that is on the schedule
 fn run_job(user: String, url: Url) {
     let network = Network::new();
     let keys = match network.get_keys(&url) {

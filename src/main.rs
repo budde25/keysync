@@ -18,6 +18,7 @@ use db::Database;
 use file::AuthorizedKeys;
 use http::Network;
 
+/// Main, returns () on success
 fn main() -> Result<()> {
     let matches = cli::app().get_matches();
 
@@ -42,6 +43,7 @@ fn main() -> Result<()> {
     }
     info!("Logger has been initialized");
 
+    // matches subcoommands, passing args to each
     match matches.subcommand() {
         ("get", Some(m)) => get(m)?,
         ("set", Some(m)) => set(m)?,
@@ -54,7 +56,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-// Gets the keys from a provider
+/// Gets the keys from a provider
 fn get(m: &ArgMatches) -> Result<()> {
     let username: String = value_t_or_exit!(m, "username", String);
 
@@ -104,6 +106,7 @@ fn get(m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
+/// Adds a new schedule for the Systemd service to run
 fn set(m: &ArgMatches) -> Result<()> {
     #[cfg(not(target_os = "linux"))]
     panic!("Platform not supported");
@@ -159,6 +162,7 @@ fn set(m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
+/// Prints currently set jobs
 fn jobs() -> Result<()> {
     #[cfg(not(target_os = "linux"))]
     panic!("Platform not supported");
@@ -190,6 +194,7 @@ fn jobs() -> Result<()> {
     Ok(())
 }
 
+/// Removes a schedule by id
 fn remove(m: &ArgMatches) -> Result<()> {
     #[cfg(not(target_os = "linux"))]
     panic!("Platform not supported");
@@ -207,6 +212,7 @@ fn remove(m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
+/// To be run by Systemd, runs until stopped
 fn daemon(m: &ArgMatches) -> Result<()> {
     #[cfg(not(target_os = "linux"))]
     panic!("Platform not supported");

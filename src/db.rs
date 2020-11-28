@@ -17,6 +17,7 @@ pub struct Schedule {
     pub url: String,
 }
 
+/// Implements display for Schedule
 impl fmt::Display for Schedule {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.id {
@@ -141,6 +142,7 @@ impl Database {
     }
 }
 
+/// Gets the last modifed date of the schedule
 pub fn last_modified() -> Result<FileTime> {
     let path = PathBuf::from("/usr/share/keysync/schedule.db");
     let metadata = fs::metadata(&path).with_context(|| {

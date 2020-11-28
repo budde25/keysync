@@ -7,8 +7,10 @@ use std::process::{Command, Stdio};
 
 use super::util;
 
+/// The name of the systemd service file
 const SERVICE_NAME: &str = "keysync.service";
 
+/// A representation of the possible systemd service states
 #[derive(PartialEq)]
 enum KeysyncService {
     Active,
@@ -16,6 +18,8 @@ enum KeysyncService {
     NotInstalled,
 }
 
+/// Checks the Systemd service is properly running, if not it prompts the user to resolve the issue by either installing or starting it
+/// Returns () if there were no errors or if the user has decided not to fix the service from running
 pub fn check() -> Result<()> {
     let status = get_service_status()?;
     if status == KeysyncService::NotInstalled
@@ -51,6 +55,7 @@ pub fn check() -> Result<()> {
     Ok(())
 }
 
+/// Returns the current status of the Systemd service
 fn get_service_status() -> Result<KeysyncService> {
     let mut cmd = Command::new("systemctl")
         .arg("status")
@@ -68,6 +73,7 @@ fn get_service_status() -> Result<KeysyncService> {
     }
 }
 
+/// Enables the service if it is installed but stopped, returns true if it was successful, false or error otherwise
 pub fn enable_service() -> Result<bool> {
     let mut cmd = Command::new("systemctl")
         .arg("enable")
@@ -80,6 +86,7 @@ pub fn enable_service() -> Result<bool> {
     Ok(cmd.wait()?.success())
 }
 
+/// Installs the service file in /usr/lib/systemd/system/
 pub fn install_service() -> Result<()> {
     let path = PathBuf::from("/usr/lib/systemd/system/").join(SERVICE_NAME);
     let mut file = File::create(path)?;
