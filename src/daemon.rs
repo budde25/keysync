@@ -120,11 +120,8 @@ fn run_job(user: String, url: Url) {
         }
     };
 
-    match authorzed_keys.write_keys(keys,false) {
-        Ok(count) => println!(
-            "Added {} keys to a {} authorized_keys file",
-            user, count
-        ),
+    match authorzed_keys.write_keys(keys, false) {
+        Ok(count) => println!("Added {} keys to a {} authorized_keys file", user, count),
         Err(e) => error!("{}", e),
     };
 }
