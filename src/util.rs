@@ -2,6 +2,7 @@ use anyhow::{anyhow, Result};
 use nix::unistd::Uid;
 use regex::Regex;
 use rustyline::{error::ReadlineError, Editor};
+use std::process::{Command, exit};
 
 // From regex example
 macro_rules! regex {
@@ -48,13 +49,13 @@ pub fn clean_keys(original_keys: Vec<String>) -> Vec<String> {
 pub fn run_as_root(user: Option<&str>) -> Result<()> {
     if !Uid::current().is_root() {
         let result = if let Some(u) = user {
-            std::process::Command::new("sudo")
+            Command::new("sudo")
                 .args(std::env::args())
                 .arg("--user")
                 .arg(u)
                 .spawn()
         } else {
-            std::process::Command::new("sudo")
+            Command::new("sudo")
                 .args(std::env::args())
                 .spawn()
         };
@@ -63,7 +64,7 @@ pub fn run_as_root(user: Option<&str>) -> Result<()> {
             Ok(mut sudo) => {
                 let output = sudo.wait().expect("Command failed to request root");
                 if output.success() {
-                    std::process::exit(0);
+                    exit(0);
                 } else {
                     Err(anyhow!("Command failed"))
                 }
