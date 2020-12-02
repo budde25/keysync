@@ -47,7 +47,7 @@ fn main() -> Result<()> {
     match matches.subcommand() {
         ("get", Some(m)) => get(m)?,
         ("set", Some(m)) => set(m)?,
-        ("jobs", Some(_)) => jobs()?,
+        ("jobs", Some(m)) => jobs(m)?,
         ("remove", Some(m)) => remove(m)?,
         ("daemon", Some(m)) => daemon(m)?,
         _ => unreachable!(),
@@ -129,9 +129,9 @@ fn set(m: &ArgMatches) -> Result<()> {
         false
     };
 
-    service::check()?;
-
     util::run_as_root()?;
+
+    if !m.is_present("skip_check") {service::check()?};
 
     AuthorizedKeys::open(Some(&user))?;
 
@@ -164,11 +164,11 @@ fn set(m: &ArgMatches) -> Result<()> {
 }
 
 /// Prints currently set jobs
-fn jobs() -> Result<()> {
+fn jobs(m: &ArgMatches) -> Result<()> {
     #[cfg(not(target_os = "linux"))]
     panic!("Platform not supported");
 
-    service::check()?;
+    if !m.is_present("skip_check") {service::check()?};
 
     // TODO check if service is running
     let database = Database::open()?;
@@ -200,9 +200,10 @@ fn remove(m: &ArgMatches) -> Result<()> {
     #[cfg(not(target_os = "linux"))]
     panic!("Platform not supported");
 
-    service::check()?;
-
     util::run_as_root()?;
+
+    if !m.is_present("skip_check") {service::check()?};
+
     let database = Database::open()?;
     let ids: Vec<u32> = values_t!(m, "ids", u32)?;
     for id in ids {
@@ -224,6 +225,7 @@ fn daemon(m: &ArgMatches) -> Result<()> {
     if install {
         service::install_service()?;
     }
+
     if enable && !service::enable_service()? {
         return Err(anyhow!("Failed to enable keysync service"));
     }

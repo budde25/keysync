@@ -49,56 +49,57 @@ pub fn app() -> App<'static, 'static> {
         AppSettings::StrictUtf8,             // Avoids panic while getting, Utf8 value
     ];
 
+    // Define some repeated args
+    let arg_skip_check = Arg::with_name("skip_check")
+        .help("Skips checking if the keysync services is running")
+        .long("skip-check");
+
+    let arg_username = Arg::with_name("username")
+        .help("The username of the account")
+        .required(true)
+        .index(1);
+
+    let arg_github = Arg::with_name("github")
+        .help("Retrieve from GitHub (default)")
+        .short("g")
+        .long("github");
+
+    let arg_gitlab = Arg::with_name("gitlab")
+        .help("Retrieve from GitLab with optional URL")
+        .value_name("URL")
+        .short("h")
+        .long("gitlab")
+        .empty_values(true)
+        .validator(is_url_or_empty);
+
+    let arg_launchpad = Arg::with_name("launchpad")
+        .help("Retrieve from Launchpad")
+        .short("l")
+        .long("launchpad");
+
+    // Now define the subcommands
     let get = SubCommand::with_name("get")
         .about("Retrieves a key from an online source")
-        .arg(
-            Arg::with_name("username")
-                .help("The username of the account")
-                .required(true)
-                .index(1),
-        )
-        .arg(
-            Arg::with_name("github")
-                .help("Retrieve from GitHub (default)")
-                .short("g")
-                .long("github"),
-        )
-        .arg(
-            Arg::with_name("launchpad")
-                .help("Retrieve from Launchpad")
-                .short("l")
-                .long("launchpad"),
-        )
-        .arg(
-            Arg::with_name("gitlab")
-                .help("Retrieve from GitLab with optional URL")
-                .value_name("URL")
-                .short("h")
-                .long("gitlab")
-                .empty_values(true)
-                .validator(is_url_or_empty),
-        );
+        .arg(&arg_username)
+        .arg(&arg_github)
+        .arg(&arg_launchpad)
+        .arg(&arg_gitlab);
 
     let set = SubCommand::with_name("set")
         .about("Add an automatic job")
         .arg(
             Arg::with_name("user")
                 .help("The local user account")
-                .required(true)
-                .index(1)
+                .required(false)
+                .index(3)
                 .validator(is_user),
         )
-        .arg(
-            Arg::with_name("username")
-                .help("The username of the account to get keys from")
-                .required(true)
-                .index(2),
-        )
+        .arg(&arg_username)
         .arg(
             Arg::with_name("schedule")
                 .help("Default schedules")
                 .required(true)
-                .index(3)
+                .index(2)
                 .possible_values(&["Hourly", "Daily", "Weekly", "Monthly"])
                 .case_insensitive(true)
                 .conflicts_with("cron"),
@@ -118,27 +119,10 @@ pub fn app() -> App<'static, 'static> {
                 .short("n")
                 .long("now"),
         )
-        .arg(
-            Arg::with_name("github")
-                .help("Retrieve from GitHub (default)")
-                .short("g")
-                .long("github"),
-        )
-        .arg(
-            Arg::with_name("launchpad")
-                .help("Retrieve from Launchpad")
-                .short("l")
-                .long("launchpad"),
-        )
-        .arg(
-            Arg::with_name("gitlab")
-                .help("Retrieve from GitLab with optional URL")
-                .value_name("URL")
-                .short("h")
-                .long("gitlab")
-                .empty_values(true)
-                .validator(is_url_or_empty),
-        );
+        .arg(&arg_github)
+        .arg(&arg_launchpad)
+        .arg(&arg_gitlab)
+        .arg(&arg_skip_check);
 
     let remove = SubCommand::with_name("remove")
         .about("Remove job(s) by ID")
@@ -147,9 +131,9 @@ pub fn app() -> App<'static, 'static> {
                 .help("Job IDs to remove")
                 .multiple(true)
                 .validator(is_number),
-        );
+        ).arg(&arg_skip_check);
 
-    let jobs = SubCommand::with_name("jobs").about("list enabled jobs");
+    let jobs = SubCommand::with_name("jobs").about("list enabled jobs").arg(&arg_skip_check);
 
     let daemon = SubCommand::with_name("daemon")
         .about("Runs job daemon in background, No need to run, systemd will manage for you")
