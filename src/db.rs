@@ -231,4 +231,55 @@ mod tests {
             .add_schedule("budd", "@monthly", "https://github.com")
             .expect("new data no problem"));
     }
+
+    /// Tests that we can read the schedule that we have created
+    #[test]
+    fn test_get_schedule() {
+        let temp = assert_fs::TempDir::new().unwrap();
+        let db = Database::open_path(temp.path().join("file.db"))
+            .expect("Should create the database file");
+        assert!(db
+            .add_schedule("budd", "@daily", "https://github.com")
+            .expect("No problems here"));
+        assert!(db
+            .add_schedule("budd", "@monthly", "https://github.com")
+            .expect("No problem"));
+
+        assert_eq!(db.get_schedules().unwrap().len(), 2);
+
+        assert!(db
+            .add_schedule("budd", "@weekly", "https://github.com")
+            .expect("No problem"));
+
+        assert_eq!(db.get_schedules().unwrap().len(), 3);
+    }
+
+    /// Tests that we can remove the schedule and it will error if we remove too much
+    #[test]
+    fn test_remove_schedule() {
+        let temp = assert_fs::TempDir::new().unwrap();
+        let db = Database::open_path(temp.path().join("file.db"))
+            .expect("Should create the database file");
+        assert!(db
+            .add_schedule("budd", "@daily", "https://github.com")
+            .expect("No problems here"));
+        assert!(db
+            .add_schedule("budd", "@monthly", "https://github.com")
+            .expect("No problem"));
+
+        assert!(db
+            .add_schedule("budd", "@weekly", "https://github.com")
+            .expect("No problem"));
+
+        assert_eq!(db.get_schedules().unwrap().len(), 3);
+
+        for i in db.get_schedules().expect("Should get") {
+            let int = i.id.unwrap();
+            db.delete_schedule(int).expect("They exist so they should delete");
+        }
+
+        assert_eq!(db.get_schedules().unwrap().len(), 0);
+
+        db.delete_schedule(0).expect("Can't remove when there are none");
+    }
 }
