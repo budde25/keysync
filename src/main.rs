@@ -113,7 +113,7 @@ fn set(m: &ArgMatches) -> Result<()> {
     } else {
         util::get_current_user()?
     };
-    dbg!(&user);
+
     exit_if_root(Some(&user))?;
 
     let username: String = value_t!(m, "username", String)?;
