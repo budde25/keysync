@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Context, Result};
 use filetime::FileTime;
-use rusqlite::{params, Connection, NO_PARAMS};
+use rusqlite::{params, Connection, Error, NO_PARAMS};
 use std::{
     fmt, fs,
     path::{Path, PathBuf},
@@ -97,7 +97,8 @@ impl Database {
             id integer primary key,
             user text not null,
             cron text not null,
-            url text not null
+            url text not null,
+            unique (user, cron, url)
             )",
             NO_PARAMS,
         )
@@ -114,15 +115,24 @@ impl Database {
     }
 
     /// Adds a new schedule to the database
-    pub fn add_schedule<S: AsRef<str>>(&self, user: S, cron: S, url: S) -> Result<()> {
+    pub fn add_schedule<S: AsRef<str>>(&self, user: S, cron: S, url: S) -> Result<bool> {
         let schedule = Schedule::new(None, user, cron, url)?;
-        self.connection
-            .execute(
-                "INSERT INTO Schedule (user, cron, url) VALUES (?1, ?2, ?3)",
-                params![schedule.user, schedule.cron, schedule.url],
-            )
-            .with_context(|| format!("Error inserting schedule {} into the database", schedule))?;
-        Ok(())
+        let result: Result<usize, Error> = self.connection.execute(
+            "INSERT INTO Schedule (user, cron, url) VALUES (?1, ?2, ?3)",
+            params![schedule.user, schedule.cron, schedule.url],
+        );
+
+        match result {
+            Ok(_) => Ok(true),
+            Err(e) => {
+                // TODO there has to be a better way but for now this works
+                if e.to_string().contains("UNIQUE constraint failed") {
+                    return Ok(false);
+                } else {
+                    return Err(e.into());
+                }
+            }
+        }
     }
 
     /// Gets a list of schedules from the database
@@ -142,14 +152,83 @@ impl Database {
     }
 }
 
-/// Gets the last modifed date of the schedule
-pub fn last_modified() -> Result<FileTime> {
+/// Last modified for the default database path
+pub fn db_last_modified() -> Result<FileTime> {
     let path = PathBuf::from("/usr/share/keysync/schedule.db");
+    last_modified(path)
+}
+
+/// Gets the last modifed date of the schedule
+pub fn last_modified<P: AsRef<Path>>(path: P) -> Result<FileTime> {
     let metadata = fs::metadata(&path).with_context(|| {
         format!(
             "Error getting filetime of file with path: {}",
-            &path.display()
+            &path.as_ref().display()
         )
     })?;
     Ok(FileTime::from_last_modification_time(&metadata))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use super::*;
+    use assert_fs::prelude::*;
+
+    /// Tests that we can correctly compare last modified time, and they are same / diff in correct situations
+    #[test]
+    fn test_get_last_modified() {
+        let temp = assert_fs::TempDir::new().unwrap();
+        let file = temp.child("file.txt");
+        last_modified(file.path()).expect_err("File should not exist");
+        file.touch().unwrap();
+        let time = last_modified(file.path()).unwrap();
+        let new_time = last_modified(file.path()).unwrap();
+        assert_eq!(time, new_time);
+        std::thread::sleep(Duration::from_millis(100)); // If we don't sleep its too fast lol
+        file.write_str("foo").unwrap(); // New modification
+        let new_time = last_modified(file.path()).unwrap();
+        assert_ne!(time, new_time);
+    }
+
+    /// Tests that schedule only excepts good data
+    #[test]
+    fn test_new_schedule() {
+        Schedule::new(None, "budd", "foo", "bar").expect_err("Bad data should error");
+        Schedule::new(None, "budd", "foo", "https://github.com")
+            .expect_err("Bad data should error");
+        Schedule::new(None, "budd", "@daily", "bar").expect_err("Bad data should error");
+        Schedule::new(Some(1), "budd", "@daily", "https://github.com").expect("Data should pass");
+    }
+
+    /// Tests that the db file is properly created
+    #[test]
+    fn test_db_creation() {
+        let temp = assert_fs::TempDir::new().unwrap();
+        Database::open_path(temp.path().join("file.db")).expect("Should create the database file"); // No file the first time
+        let db = temp.child("file2.db");
+        db.touch().unwrap();
+        Database::open_path(db.path()).expect("Should setup database on empty file");
+        let db_text = temp.child("file2.txt"); // Also try bad file ext
+        db_text.touch().unwrap();
+        Database::open_path(db.path()).expect("Should setup database on empty file, even for text");
+    }
+
+    /// Tests that the db file is properly created
+    #[test]
+    fn test_add_schedule() {
+        let temp = assert_fs::TempDir::new().unwrap();
+        let db = Database::open_path(temp.path().join("file.db"))
+            .expect("Should create the database file");
+        assert!(db
+            .add_schedule("budd", "@daily", "https://github.com")
+            .expect("No problems here"));
+        assert!(!db
+            .add_schedule("budd", "@daily", "https://github.com")
+            .expect("Duplicates! return false"));
+        assert!(db
+            .add_schedule("budd", "@monthly", "https://github.com")
+            .expect("new data no problem"));
+    }
 }

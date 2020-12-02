@@ -5,7 +5,7 @@ use log::{debug, error, info};
 use std::{str::FromStr, thread::sleep, time::Duration};
 use url::Url;
 
-use super::db::{last_modified, Database, Schedule};
+use super::db::{db_last_modified, Database, Schedule};
 use super::file::AuthorizedKeys;
 use super::http::Network;
 
@@ -22,7 +22,7 @@ impl Daemon {
         Database::open()?;
         let scheduler: JobScheduler = JobScheduler::new();
         let sleep_time: Duration = Duration::from_secs(60); // 1 minute
-        let last_modifided: FileTime = last_modified()?;
+        let last_modifided: FileTime = db_last_modified()?;
         Ok(Daemon {
             sleep_time,
             scheduler,
@@ -34,7 +34,7 @@ impl Daemon {
     pub fn start(&mut self) {
         self.schedule();
         loop {
-            let modified: FileTime = last_modified().unwrap_or(self.last_modifided);
+            let modified: FileTime = db_last_modified().unwrap_or(self.last_modifided);
             if self.last_modifided != modified {
                 self.last_modifided = modified;
                 let scheduler: JobScheduler = JobScheduler::new();

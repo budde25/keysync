@@ -46,7 +46,7 @@ pub fn app() -> App<'static, 'static> {
         AppSettings::ColoredHelp,            // Displays color, (not on windows)
         AppSettings::InferSubcommands,       // Hints
         AppSettings::VersionlessSubcommands, // No -V on subcommands
-        AppSettings::StrictUtf8              // Avoids panic while getting, Utf8 value
+        AppSettings::StrictUtf8,             // Avoids panic while getting, Utf8 value
     ];
 
     let get = SubCommand::with_name("get")

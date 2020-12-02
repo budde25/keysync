@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use nix::unistd::Uid;
-use rustyline::Editor;
 use regex::Regex;
+use rustyline::{error::ReadlineError, Editor};
 
 // From regex example
 macro_rules! regex {
@@ -80,9 +80,10 @@ pub fn get_confirmation(query: &str) -> Result<bool> {
                 return Ok(true);
             }
         }
-        Err(err) => {
-            println!("Error: {:?}", err);
-        }
+        Err(err) => match err {
+            ReadlineError::Eof | ReadlineError::Interrupted => (),
+            _ => println!("Error: {:?}", err),
+        },
     }
     Ok(false)
 }

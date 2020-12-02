@@ -7,7 +7,7 @@ mod service;
 mod util;
 
 use anyhow::{anyhow, Result};
-use clap::{value_t_or_exit, values_t_or_exit, ArgMatches};
+use clap::{value_t, values_t, ArgMatches};
 use cron::Schedule;
 use log::{info, warn};
 use nix::unistd::Uid;
@@ -58,7 +58,7 @@ fn main() -> Result<()> {
 
 /// Gets the keys from a provider
 fn get(m: &ArgMatches) -> Result<()> {
-    let username: String = value_t_or_exit!(m, "username", String);
+    let username: String = value_t!(m, "username", String)?;
 
     info!("Getting data for {}", username);
     if Uid::current().is_root() {
@@ -86,7 +86,7 @@ fn get(m: &ArgMatches) -> Result<()> {
     )?;
 
     let user: Option<String> = if m.is_present("user") {
-        Some(value_t_or_exit!(m, "user", String))
+        Some(value_t!(m, "user", String)?)
     } else {
         None
     };
@@ -110,12 +110,12 @@ fn set(m: &ArgMatches) -> Result<()> {
     panic!("Platform not supported");
 
     // Get variables
-    let user: String = value_t_or_exit!(m, "user", String);
-    let username: String = value_t_or_exit!(m, "username", String);
+    let user: String = value_t!(m, "user", String)?;
+    let username: String = value_t!(m, "username", String)?;
     let cron: Schedule = if m.is_present("cron") {
-        value_t_or_exit!(m, "cron", Schedule)
+        value_t!(m, "cron", Schedule)?
     } else {
-        let default_cron = value_t_or_exit!(m, "schedule", cli::DefaultCron);
+        let default_cron = value_t!(m, "schedule", cli::DefaultCron)?;
         default_cron.to_schedule()
     };
 
@@ -146,8 +146,11 @@ fn set(m: &ArgMatches) -> Result<()> {
     if !m.is_present("dry-run") {
         let database = Database::open()?;
         for url in urls {
-            database.add_schedule(&user, &cron.to_string(), &url)?;
-            println!("Successfully added import schedule with url: {}", url);
+            if database.add_schedule(&user, &cron.to_string(), &url)? {
+                println!("Successfully added import schedule with url: {}", url);
+            } else {
+                return Err(anyhow!("Job already exists"));
+            }
         }
     } else {
         println!("Syntax Ok");
@@ -172,7 +175,7 @@ fn jobs() -> Result<()> {
     let jobs: Vec<db::Schedule> = database.get_schedules()?;
     let total_jobs = jobs.len();
     println!(
-        "Found {} job{}",
+        "Found {} job{}.\n",
         total_jobs,
         if total_jobs == 1 { "" } else { "s" }
     );
@@ -201,7 +204,7 @@ fn remove(m: &ArgMatches) -> Result<()> {
 
     util::run_as_root()?;
     let database = Database::open()?;
-    let ids: Vec<u32> = values_t_or_exit!(m, "ids", u32);
+    let ids: Vec<u32> = values_t!(m, "ids", u32)?;
     for id in ids {
         database.delete_schedule(id)?;
         println!("Removed job with id: {}", id);

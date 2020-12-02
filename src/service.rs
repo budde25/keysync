@@ -22,34 +22,39 @@ enum KeysyncService {
 /// Returns () if there were no errors or if the user has decided not to fix the service from running
 pub fn check() -> Result<()> {
     let status = get_service_status()?;
-    if status == KeysyncService::NotInstalled
-        && util::get_confirmation(
+    if status == KeysyncService::NotInstalled {
+        if util::get_confirmation(
             "Systemd service file not installed, would you like it install and enable it now?",
-        )?
-    {
-        // Install and enable
-        let mut cmd = Command::new("sudo")
-            .arg("keysync")
-            .arg("daemon")
-            .arg("--install")
-            .arg("--enable")
-            .spawn()?;
-        if cmd.wait()?.success() {
-            println!("Sucessfully installed and enabled keysync service");
+        )? {
+            // Install and enable
+            let mut cmd = Command::new("sudo")
+                .arg("keysync")
+                .arg("daemon")
+                .arg("--install")
+                .arg("--enable")
+                .spawn()?;
+            if cmd.wait()?.success() {
+                println!("Sucessfully installed and enabled keysync service");
+            }
+        } else {
+            println!("keysync service not installed or started.\n");
         }
     }
 
-    if status == KeysyncService::Stopped
-        && util::get_confirmation("keysync service not running, would you like to enable it now?")?
-    {
-        // Enable
-        let mut cmd = Command::new("sudo")
-            .arg("keysync")
-            .arg("daemon")
-            .arg("--enable")
-            .spawn()?;
-        if cmd.wait()?.success() {
-            println!("Sucessfully enabled keysync service");
+    if status == KeysyncService::Stopped {
+        if util::get_confirmation("keysync service not running, would you like to enable it now?")?
+        {
+            // Enable
+            let mut cmd = Command::new("sudo")
+                .arg("keysync")
+                .arg("daemon")
+                .arg("--enable")
+                .spawn()?;
+            if cmd.wait()?.success() {
+                println!("Sucessfully enabled keysync service");
+            }
+        } else {
+            println!("keysync service not started.\n");
         }
     }
     Ok(())
