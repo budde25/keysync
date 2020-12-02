@@ -9,8 +9,8 @@ mod util;
 use anyhow::{anyhow, Result};
 use clap::{value_t, values_t, ArgMatches};
 use cron::Schedule;
-use log::{info, warn};
-use nix::unistd::Uid;
+use log::info;
+use nix::unistd::{Uid, User};
 use url::Url;
 
 use daemon::Daemon;
@@ -60,10 +60,14 @@ fn main() -> Result<()> {
 fn get(m: &ArgMatches) -> Result<()> {
     let username: String = value_t!(m, "username", String)?;
 
+    let user: Option<String> = if m.is_present("user") {
+        Some(value_t!(m, "user", String)?)
+    } else {
+        None
+    };
+    exit_if_root(user.as_ref())?;
+
     info!("Getting data for {}", username);
-    if Uid::current().is_root() {
-        warn!("Running as root will add this to the root users authorized keys file")
-    }
 
     let mut gitlab_url: Option<Url> = None;
     let gitlab: bool = if let Some(u) = m.value_of("gitlab") {
@@ -85,12 +89,6 @@ fn get(m: &ArgMatches) -> Result<()> {
         gitlab_url,
     )?;
 
-    let user: Option<String> = if m.is_present("user") {
-        Some(value_t!(m, "user", String)?)
-    } else {
-        None
-    };
-
     let authorized_keys: AuthorizedKeys = AuthorizedKeys::open(user)?;
 
     let dry_run = m.is_present("dry_run");
@@ -110,7 +108,14 @@ fn set(m: &ArgMatches) -> Result<()> {
     panic!("Platform not supported");
 
     // Get variables
-    let user: String = value_t!(m, "user", String)?;
+    let user: String = if m.is_present("user") {
+        value_t!(m, "user", String)?
+    } else {
+        util::get_current_user()?
+    };
+    dbg!(&user);
+    exit_if_root(Some(&user))?;
+
     let username: String = value_t!(m, "username", String)?;
     let cron: Schedule = if m.is_present("cron") {
         value_t!(m, "cron", Schedule)?
@@ -129,9 +134,11 @@ fn set(m: &ArgMatches) -> Result<()> {
         false
     };
 
-    util::run_as_root()?;
+    util::run_as_root(Some(&user))?;
 
-    if !m.is_present("skip_check") {service::check()?};
+    if !m.is_present("skip_check") {
+        service::check()?
+    };
 
     AuthorizedKeys::open(Some(&user))?;
 
@@ -143,7 +150,7 @@ fn set(m: &ArgMatches) -> Result<()> {
         gitlab_url,
     );
 
-    if !m.is_present("dry-run") {
+    if !m.is_present("dry_run") {
         let database = Database::open()?;
         for url in urls {
             if database.add_schedule(&user, &cron.to_string(), &url)? {
@@ -168,9 +175,10 @@ fn jobs(m: &ArgMatches) -> Result<()> {
     #[cfg(not(target_os = "linux"))]
     panic!("Platform not supported");
 
-    if !m.is_present("skip_check") {service::check()?};
+    if !m.is_present("skip_check") {
+        service::check()?
+    };
 
-    // TODO check if service is running
     let database = Database::open()?;
     let jobs: Vec<db::Schedule> = database.get_schedules()?;
     let total_jobs = jobs.len();
@@ -200,15 +208,23 @@ fn remove(m: &ArgMatches) -> Result<()> {
     #[cfg(not(target_os = "linux"))]
     panic!("Platform not supported");
 
-    util::run_as_root()?;
+    util::run_as_root(None)?;
 
-    if !m.is_present("skip_check") {service::check()?};
+    if !m.is_present("skip_check") {
+        service::check()?
+    };
+
+    let dry_run = m.is_present("dry_run");
 
     let database = Database::open()?;
     let ids: Vec<u32> = values_t!(m, "ids", u32)?;
     for id in ids {
-        database.delete_schedule(id)?;
-        println!("Removed job with id: {}", id);
+        if dry_run {
+            println!("Would remove job with id: {}", id);
+        } else {
+            database.delete_schedule(id)?;
+            println!("Removed job with id: {}", id);
+        }
     }
 
     Ok(())
@@ -236,5 +252,19 @@ fn daemon(m: &ArgMatches) -> Result<()> {
 
     let mut daemon = Daemon::new()?;
     daemon.start();
+    Ok(())
+}
+
+fn exit_if_root<S: AsRef<str>>(user: Option<S>) -> Result<()> {
+    if let Some(u) = user {
+        // Unwrap shouldn't be an issue, should exist if we get here
+        if User::from_name(u.as_ref()).unwrap().unwrap().uid.is_root() {
+            return Err(anyhow!("Adding keys to the root users authorized_keys file is not support, please refer too the following to learn about the risks.\nhttps://unix.stackexchange.com/questions/82626/why-is-root-login-via-ssh-so-bad-that-everyone-advises-to-disable-it"));
+        }
+    } else {
+        if Uid::current().is_root() {
+            return Err(anyhow!("Do not run this keysync as root, it will ask for root if needed.\nAdding keys to the root users authorized_keys file is not support, please refer too the following to learn about the risks.\nhttps://unix.stackexchange.com/questions/82626/why-is-root-login-via-ssh-so-bad-that-everyone-advises-to-disable-it"));
+        }
+    }
     Ok(())
 }

@@ -45,18 +45,27 @@ pub fn clean_keys(original_keys: Vec<String>) -> Vec<String> {
 }
 
 /// Runs the current command line options as root, (assuming sudo is installed)
-pub fn run_as_root() -> Result<()> {
+pub fn run_as_root(user: Option<&str>) -> Result<()> {
     if !Uid::current().is_root() {
-        match std::process::Command::new("sudo")
-            .args(std::env::args())
-            .spawn()
-        {
+        let result = if let Some(u) = user {
+            std::process::Command::new("sudo")
+                .args(std::env::args())
+                .arg("--user")
+                .arg(u)
+                .spawn()
+        } else {
+            std::process::Command::new("sudo")
+                .args(std::env::args())
+                .spawn()
+        };
+
+        match result {
             Ok(mut sudo) => {
                 let output = sudo.wait().expect("Command failed to request root");
                 if output.success() {
                     std::process::exit(0);
                 } else {
-                    Err(anyhow!("Command failed to request root"))
+                    Err(anyhow!("Command failed"))
                 }
             }
             Err(_) => Err(anyhow!("Requires root")),
@@ -86,6 +95,10 @@ pub fn get_confirmation(query: &str) -> Result<bool> {
         },
     }
     Ok(false)
+}
+
+pub fn get_current_user() -> Result<String> {
+    Ok(std::env::var("USER")?)
 }
 
 // Unit Tests
