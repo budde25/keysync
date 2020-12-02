@@ -7,9 +7,9 @@ use url::Url;
 
 use super::util;
 
-const GITHUB_URL: &'static str = "https://github.com/";
-const GITLAB_URL: &'static str = "https://gitlab.com/";
-const LAUNCHPAD_URL: &'static str = "https://launchpad.net/";
+const GITHUB_URL: &str = "https://github.com/";
+const GITLAB_URL: &str = "https://gitlab.com/";
+const LAUNCHPAD_URL: &str = "https://launchpad.net/";
 
 /// Network key request implementation
 pub struct Network {

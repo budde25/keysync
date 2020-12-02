@@ -261,10 +261,8 @@ fn exit_if_root<S: AsRef<str>>(user: Option<S>) -> Result<()> {
         if User::from_name(u.as_ref()).unwrap().unwrap().uid.is_root() {
             return Err(anyhow!("Adding keys to the root users authorized_keys file is not support, please refer too the following to learn about the risks.\nhttps://unix.stackexchange.com/questions/82626/why-is-root-login-via-ssh-so-bad-that-everyone-advises-to-disable-it"));
         }
-    } else {
-        if Uid::current().is_root() {
-            return Err(anyhow!("Do not run this keysync as root, it will ask for root if needed.\nAdding keys to the root users authorized_keys file is not support, please refer too the following to learn about the risks.\nhttps://unix.stackexchange.com/questions/82626/why-is-root-login-via-ssh-so-bad-that-everyone-advises-to-disable-it"));
-        }
+    } else if Uid::current().is_root() {
+        return Err(anyhow!("Do not run this keysync as root, it will ask for root if needed.\nAdding keys to the root users authorized_keys file is not support, please refer too the following to learn about the risks.\nhttps://unix.stackexchange.com/questions/82626/why-is-root-login-via-ssh-so-bad-that-everyone-advises-to-disable-it"));
     }
     Ok(())
 }

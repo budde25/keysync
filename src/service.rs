@@ -8,7 +8,7 @@ use std::process::{Command, Stdio};
 use super::util;
 
 /// The name of the systemd service file
-const SERVICE_NAME: &'static str = "keysync.service";
+const SERVICE_NAME: &str = "keysync.service";
 
 /// A representation of the possible systemd service states
 #[derive(PartialEq)]
