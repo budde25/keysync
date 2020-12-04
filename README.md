@@ -18,7 +18,7 @@ More releases coming soon.
 
 ## Usage
 
-```
+``` lang-none
 SSH Key Sync 0.2.0
 A command line client and service for keeping SHH keys up to date with a list Ex: Github.
 
