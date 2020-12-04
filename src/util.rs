@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use nix::unistd::Uid;
 use regex::Regex;
 use rustyline::{error::ReadlineError, Editor};
-use std::process::{Command, exit};
+use std::process::{exit, Command};
 
 // From regex example
 macro_rules! regex {
@@ -55,9 +55,7 @@ pub fn run_as_root(user: Option<&str>) -> Result<()> {
                 .arg(u)
                 .spawn()
         } else {
-            Command::new("sudo")
-                .args(std::env::args())
-                .spawn()
+            Command::new("sudo").args(std::env::args()).spawn()
         };
 
         match result {
@@ -98,11 +96,12 @@ pub fn get_confirmation(query: &str) -> Result<bool> {
     Ok(false)
 }
 
+/// Gets the current user, from the $USER env variable
 pub fn get_current_user() -> Result<String> {
     Ok(std::env::var("USER")?)
 }
 
-// Unit Tests
+/// Unit Tests
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -176,6 +175,7 @@ mod tests {
         assert_eq!(split_keys(keys).len(), 0);
     }
 
+    /// Tests the all the different key types
     #[test]
     fn test_all_valid_keys() {
         assert_eq!(split_keys(SSH_KEY_TYPES).len(), 5);
