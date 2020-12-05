@@ -77,7 +77,7 @@ impl AuthorizedKeys {
         let keys_string = fs::read_to_string(&self.path)
             .with_context(|| format!("Error reading keys from file: {}", self.path.display()))?;
         let keys = util::clean_keys(util::split_keys(&keys_string));
-        let ends_with_newline = keys_string.ends_with("\n");
+        let ends_with_newline = keys_string.ends_with('\n');
         Ok((keys, ends_with_newline))
     }
 

@@ -127,9 +127,9 @@ impl Database {
             Err(e) => {
                 // TODO there has to be a better way but for now this works
                 if e.to_string().contains("UNIQUE constraint failed") {
-                    return Ok(false);
+                    Ok(false)
                 } else {
-                    return Err(e.into());
+                    Err(e.into())
                 }
             }
         }
