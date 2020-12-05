@@ -18,6 +18,8 @@ use db::Database;
 use file::AuthorizedKeys;
 use http::Network;
 
+#[deny(unsafe_code)]
+
 /// Main, returns () on success
 fn main() -> Result<()> {
     let matches = cli::app().get_matches();
