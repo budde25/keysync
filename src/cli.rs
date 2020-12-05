@@ -145,7 +145,7 @@ pub fn app() -> App<'static, 'static> {
         .arg(&arg_dry_run);
 
     let jobs = SubCommand::with_name("jobs")
-        .about("list enabled jobs")
+        .about("List enabled job(s)")
         .arg(&arg_skip_check);
 
     let daemon = SubCommand::with_name("daemon")
