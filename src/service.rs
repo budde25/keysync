@@ -1,9 +1,11 @@
 use anyhow::{Context, Result};
+use once_cell::unsync::Lazy;
 use std::env::current_exe;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
+use unindent::unindent;
 
 use super::util;
 
@@ -28,7 +30,7 @@ pub fn check() -> Result<()> {
         )? {
             // Install and enable
             let mut cmd = Command::new("sudo")
-                .arg("keysync")
+                .arg(env!("CARGO_PKG_NAME"))
                 .arg("daemon")
                 .arg("--install")
                 .arg("--enable")
@@ -46,7 +48,7 @@ pub fn check() -> Result<()> {
         {
             // Enable
             let mut cmd = Command::new("sudo")
-                .arg("keysync")
+                .arg(env!("CARGO_PKG_NAME"))
                 .arg("daemon")
                 .arg("--enable")
                 .spawn()?;
@@ -95,11 +97,21 @@ pub fn enable_service() -> Result<bool> {
 pub fn install_service() -> Result<()> {
     let path = PathBuf::from("/usr/lib/systemd/system/").join(SERVICE_NAME);
     let mut file = File::create(path)?;
+
     let bin = current_exe()?;
-    let text = format!(
-    "[Unit]\nDescription=The SSH Key Sync service\nAfter=network.target\n[Service]\nExecStart={} daemon\nType=simple\n[Install]\nWantedBy=multi-user.service",
-        bin.display()
-    );
+    let text = Lazy::new(|| {
+        unindent(&format!(
+            "[Unit]
+            Description=The SSH Key Sync service
+            After=network.target
+            [Service]
+            ExecStart={} daemon
+            Type=simple
+            [Install]
+            WantedBy=multi-user.service",
+            bin.display()
+        ))
+    });
     file.write_all(text.as_bytes())?;
     Ok(())
 }
