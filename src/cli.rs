@@ -149,7 +149,7 @@ pub fn app() -> App<'static, 'static> {
         .arg(&arg_skip_check);
 
     let daemon = SubCommand::with_name("daemon")
-        .about("Runs job daemon in background, No need to run, systemd will manage for you")
+        .about("Runs job daemon in background (No need to run, systemd will manage for you)")
         .arg(
             Arg::with_name("install")
                 .help("Install the Systemd service file")
