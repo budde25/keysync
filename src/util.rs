@@ -1,19 +1,19 @@
-use super::http;
-use nix::unistd;
-use nix::unistd::Gid;
+use anyhow::{anyhow, Result};
 use nix::unistd::Uid;
-use url::Url;
+use regex::Regex;
+use rustyline::{error::ReadlineError, Editor};
+use std::process::{exit, Command};
 
-pub fn get_uid_gid(user: &str) -> anyhow::Result<(Uid, Gid)> {
-    let user_option = unistd::User::from_name(user)?;
-
-    match user_option {
-        Some(user) => Ok((user.uid, user.gid)),
-        None => Ok((Uid::current(), Gid::current())),
-    }
+// From regex example
+macro_rules! regex {
+    ($re:literal $(,)?) => {{
+        static RE: once_cell::sync::OnceCell<regex::Regex> = once_cell::sync::OnceCell::new();
+        RE.get_or_init(|| regex::Regex::new($re).unwrap())
+    }};
 }
 
-/// Filters the keys to prevent adding duplicates
+/// Filters the keys to prevent adding duplicates, also adds import comment
+/// Returns a list of keys to that are unique
 pub fn filter_keys(to_add: Vec<String>, exist: Vec<String>) -> Vec<String> {
     to_add
         .iter()
@@ -22,14 +22,22 @@ pub fn filter_keys(to_add: Vec<String>, exist: Vec<String>) -> Vec<String> {
         .collect()
 }
 
+/// Splits a string of keys into a list of keys based off a newline, also discards invalid keys
 pub fn split_keys(all_keys: &str) -> Vec<String> {
     all_keys
         .split('\n')
-        .filter(|x| x.contains("ssh") || x.contains("ecdsa"))
-        .map(|x| x.trim().to_owned())
+        .map(|x| x.trim())
+        .filter(|x| {
+            let re: &Regex = regex!(
+                r"^(ssh-rsa AAAAB3NzaC1yc2|ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNT|ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzOD|ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1Mj|ssh-ed25519 AAAAC3NzaC1lZDI1NTE5|ssh-dss AAAAB3NzaC1kc3)",
+            );
+            re.is_match(x)
+        })
+        .map(|x| x.to_owned())
         .collect()
 }
 
+/// Removes any garbage from the keys Ex: comments
 pub fn clean_keys(original_keys: Vec<String>) -> Vec<String> {
     original_keys
         .iter()
@@ -37,62 +45,63 @@ pub fn clean_keys(original_keys: Vec<String>) -> Vec<String> {
         .collect()
 }
 
-// Returns a list of urls based for each service
-pub fn create_urls(
-    username: &str,
-    mut github: bool,
-    launchpad: bool,
-    gitlab: Option<Url>,
-) -> Vec<String> {
-    // if none are selected default to github
-    if !github && !launchpad && gitlab.is_none() {
-        github = true
-    };
+/// Runs the current command line options as root, (assuming sudo is installed)
+pub fn run_as_root(user: Option<&str>) -> Result<()> {
+    if !Uid::current().is_root() {
+        let result = if let Some(u) = user {
+            Command::new("sudo")
+                .args(std::env::args())
+                .arg("--user")
+                .arg(u)
+                .spawn()
+        } else {
+            Command::new("sudo").args(std::env::args()).spawn()
+        };
 
-    let mut urls: Vec<String> = vec![];
-    if github {
-        urls.push(http::get_github(username))
-    };
-    if launchpad {
-        urls.push(http::get_launchpad(username))
-    };
-    match gitlab {
-        Some(url) => urls.push(http::get_gitlab(username, Some(url))),
-        None => (),
-    };
-    urls
+        match result {
+            Ok(mut sudo) => {
+                let output = sudo.wait().expect("Command failed to request root");
+                if output.success() {
+                    exit(0);
+                } else {
+                    Err(anyhow!("Command failed"))
+                }
+            }
+            Err(_) => Err(anyhow!("Requires root")),
+        }
+    } else {
+        Ok(())
+    }
 }
 
-// TESTS
+/// Prompts the user a question, with a (Y,n) attached.
+/// Returns true if the user repsonds with y or yes, false otherwise
+pub fn get_confirmation(query: &str) -> Result<bool> {
+    let mut rl = Editor::<()>::new();
+    let prompt = format!("{} (Y/n)\n>> ", query);
+    let readline = rl.readline(&prompt);
+
+    match readline {
+        Ok(line) => {
+            let clean_line = line.trim().to_lowercase();
+            if clean_line == "y" || clean_line == "yes" {
+                return Ok(true);
+            }
+        }
+        Err(err) => match err {
+            ReadlineError::Eof | ReadlineError::Interrupted => (),
+            _ => println!("Error: {:?}", err),
+        },
+    }
+    Ok(false)
+}
+
+/// Gets the current user, from the $USER env variable
+pub fn get_current_user() -> Result<String> {
+    Ok(std::env::var("USER")?)
+}
+
+/// Unit Tests
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn keys_clean() {
-        let keys = vec![
-            "ssh 12e32 removes this".to_owned(),
-            "test 1".to_owned(),
-            "ecdsa 78".to_owned(),
-        ];
-        let clean = clean_keys(keys);
-        assert_eq!(clean[0], "ssh 12e32");
-    }
-
-    #[test]
-    fn split() {
-        let keys = "ssh-rsa key\nssh-rsa key2";
-        let arr = split_keys(keys);
-        assert_eq!(arr.len(), 2);
-    }
-
-    #[test]
-    fn filter() {
-        let org_keys = "ssh-rsa key\nssh-rsa key2";
-        let new_keys = "ssh-rsa key2\nssh-rsa key3";
-        let org_arr = split_keys(org_keys);
-        let new_arr = split_keys(new_keys);
-        let diff = filter_keys(org_arr, new_arr);
-        assert_eq!(diff.len(), 1);
-    }
-}
+#[path = "./tests/util.rs"]
+mod test;

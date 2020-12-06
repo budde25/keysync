@@ -1,93 +1,132 @@
-use filetime::FileTime;
-use log::{error, info};
-use nix::unistd;
-use nix::unistd::Gid;
-use nix::unistd::Uid;
-use std::fs;
-use std::fs::File;
+use anyhow::{Context, Result};
+use log::info;
+use nix::unistd::{chown, Gid, Uid, User};
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::{fs, fs::File};
 
 use super::util;
 
-pub fn get_current_keys(user: Option<&str>) -> anyhow::Result<Vec<String>> {
-    let content = fs::read_to_string(get_auth_keys_path(user));
-    let keys_string = match content {
-        Ok(val) => val,
-        Err(_) => String::new(),
-    };
-
-    Ok(util::clean_keys(util::split_keys(&keys_string)))
+// Authorized keys file implementation
+#[derive(Debug)]
+pub struct AuthorizedKeys {
+    path: PathBuf,
 }
 
-pub fn write_keys(keys: Vec<String>, username: Option<&str>) -> anyhow::Result<()> {
-    let path = get_auth_keys_path(username);
-
-    info!("Writing keys to {:?}", path);
-
-    if keys.is_empty() {
-        return Ok(());
-    }
-
-    let content: String = keys.join("\n") + "\n";
-    let mut file: File = match fs::OpenOptions::new().write(true).append(true).open(&path) {
-        Ok(f) => f,
-        Err(e) => {
-            error!("Opening file {:?} failed", path);
-            return Err(anyhow::anyhow!("{}", e));
+impl AuthorizedKeys {
+    /// Sets up Authorized keys for a given directory
+    #[allow(dead_code)] // Used for testing
+    pub fn open_path<P: AsRef<Path>>(path: P) -> Result<Self> {
+        let pathbuf = path.as_ref().to_path_buf();
+        if !pathbuf.is_file() {
+            File::create(&path).context("Failed to create the AuthorizedKeys file")?;
         }
-    };
+        Ok(AuthorizedKeys { path: pathbuf })
+    }
 
-    match file.write_all(content.as_bytes()) {
-        Ok(_) => Ok(()),
-        Err(e) => {
-            error!("Writing to file {:?} failed", path);
-            return Err(anyhow::anyhow!("{}", e));
+    /// Sets up the AuthorizedKeys object
+    pub fn open<S: AsRef<str>>(user: Option<S>) -> Result<Self> {
+        let ids: (Uid, Gid) = get_uid_gid(user.as_ref())?;
+        // TODO support non default home dir
+        let home_dir = if let Some(u) = user {
+            PathBuf::from("/home").join(u.as_ref())
+        } else {
+            dirs::home_dir().context("Failed to get home directory")?
+        };
+
+        let path = home_dir.join(".ssh").join("authorized_keys");
+
+        // Create the authorized keys file or path
+        if !path.is_file() {
+            if let Some(file_path) = path.parent() {
+                if !file_path.is_dir() {
+                    fs::create_dir_all(file_path).with_context(|| {
+                        format!(
+                            "Failed to create the directory [{}] for the authorized_keys file",
+                            file_path.display()
+                        )
+                    })?;
+                    chown(file_path, Some(ids.0), Some(ids.1)).with_context(|| {
+                        format!(
+                            "Failed to set the folder [{}] ownership to user",
+                            file_path.display()
+                        )
+                    })?;
+                }
+            }
+            File::create(&path).with_context(|| {
+                format!(
+                    "Failed to create the authorized_keys [{}] file",
+                    path.display()
+                )
+            })?;
+            chown(&path, Some(ids.0), Some(ids.1)).with_context(|| {
+                format!(
+                    "Failed to set authorized_keys [{}] ownership to user",
+                    path.display()
+                )
+            })?;
         }
+
+        Ok(AuthorizedKeys { path })
+    }
+
+    /// Gets array of current authorized keys, and true if the keys file ends with a newline, false otherwise
+    fn get_keys(&self) -> Result<(Vec<String>, bool)> {
+        info!("Reading keys to {}", self.path.display());
+        let keys_string = fs::read_to_string(&self.path)
+            .with_context(|| format!("Error reading keys from file: {}", self.path.display()))?;
+        let keys = util::clean_keys(util::split_keys(&keys_string));
+        let ends_with_newline = keys_string.ends_with('\n');
+        Ok((keys, ends_with_newline))
+    }
+
+    /// Writes array of keys to authorized keys file, returns amount of keys to write or written
+    pub fn write_keys(&self, keys: Vec<String>, dry_run: bool) -> Result<usize> {
+        let (existing_keys, ends_with_newline) = self.get_keys()?;
+        let keys_to_add = util::filter_keys(keys, existing_keys);
+
+        info!("Writing keys to {}", self.path.display());
+
+        // If we have no keys to write we can just exit
+        if keys_to_add.is_empty() || dry_run {
+            return Ok(keys_to_add.len());
+        }
+
+        let prefix = if !ends_with_newline {
+            String::from("\n")
+        } else {
+            String::new()
+        };
+        let content: String = prefix + &keys_to_add.join("\n") + "\n"; // We want each to be on its own line while also appending a newline
+
+        let mut file: File = fs::OpenOptions::new()
+            .write(true)
+            .append(true)
+            .open(&self.path)
+            .with_context(|| format!("Error opening keys file: {}", self.path.display()))?;
+
+        file.write_all(content.as_bytes())
+            .with_context(|| format!("Error writing keys from file: {}", self.path.display()))?;
+        Ok(keys_to_add.len())
     }
 }
 
-pub fn get_auth_keys_path(user: Option<&str>) -> PathBuf {
-    let home = match user {
-        Some(username) => Option::Some(PathBuf::from("/home").join(username)),
-        None => dirs::home_dir(),
-    };
-
-    match home {
-        Some(path) => path.join(".ssh").join("authorized_keys"),
-        None => PathBuf::new(), //TODO find abs path of ssh dir
+/// Gets the User Id and Group Id of user provided, if no user was provided just returns the current user
+fn get_uid_gid<S: AsRef<str>>(user: Option<S>) -> Result<(Uid, Gid)> {
+    if let Some(u) = user {
+        match User::from_name(u.as_ref())
+            .with_context(|| format!("Unable to get the Uid and Gid of user: {}", u.as_ref()))?
+        {
+            Some(user) => Ok((user.uid, user.gid)),
+            None => Ok((Uid::current(), Gid::current())),
+        }
+    } else {
+        Ok((Uid::current(), Gid::current()))
     }
 }
 
-pub fn get_schedule_path() -> PathBuf {
-    PathBuf::from("/usr/share/keysync/schedule.db")
-}
-
-pub fn schedule_last_modified() -> anyhow::Result<FileTime> {
-    let metadata = fs::metadata(get_schedule_path())?;
-    Ok(FileTime::from_last_modification_time(&metadata))
-}
-
-pub fn create_file_for_user(user: Option<&str>) -> anyhow::Result<()> {
-    let ids = match user {
-        Some(u) => util::get_uid_gid(&u)?,
-        None => (Uid::current(), Gid::current()),
-    };
-    let path = get_auth_keys_path(user);
-    create_file(path, ids.0, ids.1)?;
-
-    Ok(())
-}
-
-fn create_file(path: PathBuf, uid: Uid, gid: Gid) -> anyhow::Result<()> {
-    let file_path = path.parent().unwrap();
-    if !file_path.is_dir() {
-        fs::create_dir(file_path)?;
-        unistd::chown(file_path, Some(uid), Some(gid))?;
-    }
-    if !path.is_file() {
-        File::create(&path)?;
-        unistd::chown(&path, Some(uid), Some(gid))?;
-    }
-    Ok(())
-}
+/// Unit Tests
+#[cfg(test)]
+#[path = "./tests/file.rs"]
+mod test;

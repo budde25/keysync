@@ -13,39 +13,41 @@ Note: Automatic jobs will fail if the computer goes to sleep/hibernate. The syst
 ## Install
 
 Install latest deb from releases.  
-`cargo install keysync` not reccomended, cannot run as daemon.  
+`cargo install keysync`.  
 More releases coming soon.  
 
 ## Usage
 
-```
-SSH Key Sync 0.2.0
-A command line client and service for keeping SHH keys up to date with a list Ex: Github.
+```lang-none
+keysync 3.0.0
+Ethan Budd <budde25@protonmail.com>
+A utility to sync local authorized_keys file updated with your with Github, Gitlab, and Launchpad public keys
 
 USAGE:
     keysync [FLAGS] <SUBCOMMAND>
 
 FLAGS:
-    -d, --dry-run    Runs the commands without commiting the changes
     -h, --help       Prints help information
     -V, --version    Prints version information
-    -v, --verbose    Verbose mode (-v, -vv, -vvv)
+    -v               Verbose mode (-v, -vv, -vvv)
 
 SUBCOMMANDS:
-    get     The username to fetch
-    help    Prints this message or the help of the given subcommand(s)
-    jobs    Current enabled jobs
-    set     Add an automatic job
+    daemon    Runs job daemon in background (No need to run, systemd will manage for you)
+    get       Retrieves a key from an online source
+    help      Prints this message or the help of the given subcommand(s)
+    jobs      List enabled job(s)
+    remove    Remove job(s) by ID
+    set       Add an automatic job
 ```
 
-Use `keysync <subcommand> help` for help with that subcommand.
+Use `keysync help <subcommand>` for help with that subcommand.
   
 Examples:  
 `keysync get <username>` Downloads the public keys from github for the username.  
 `keysync get --gitlab <url> <username>` Downloads the public keys from gitlab for the username, a url must be provided or '' for `https://gitlab.com`.  
-`keysync add <user> <username> <schedule>` Adds automatic job for the user, where username is the Github or Gitlab username.  
+`keysync add <username> <schedule>` Adds automatic job for the user, where username is the Github or Gitlab username.  
 Valid schedules are [Hourly, Daily, Weekly, Monthly, Custom]  
-`keysync add <user> <username> custom -c <cron>` Adds automactic job for user with custom cron schedule.  
+`keysync add <username> custom -c <cron>` Adds automactic job for user with custom cron schedule.  
 
 ## Setup
 

@@ -1,8 +1,8 @@
 [Unit]
-Description=The SSH Key Sync service
+Description=The SSH Key Sync daemon
 After=network.target
 [Service]
-ExecStart=/usr/bin/keysync --daemon
+ExecStart=/usr/bin/keysync daemon
 Type=simple
 [Install]
 WantedBy=multi-user.service
