@@ -106,9 +106,6 @@ fn get(m: &ArgMatches) -> Result<()> {
 
 /// Adds a new schedule for the Systemd service to run
 fn set(m: &ArgMatches) -> Result<()> {
-    #[cfg(not(target_os = "linux"))]
-    panic!("Platform not supported");
-
     // Get variables
     let user: String = if m.is_present("user") {
         value_t!(m, "user", String)?
@@ -174,9 +171,6 @@ fn set(m: &ArgMatches) -> Result<()> {
 
 /// Prints currently set jobs
 fn jobs(m: &ArgMatches) -> Result<()> {
-    #[cfg(not(target_os = "linux"))]
-    panic!("Platform not supported");
-
     if !m.is_present("skip_check") {
         service::check()?
     };
@@ -207,9 +201,6 @@ fn jobs(m: &ArgMatches) -> Result<()> {
 
 /// Removes a schedule by id
 fn remove(m: &ArgMatches) -> Result<()> {
-    #[cfg(not(target_os = "linux"))]
-    panic!("Platform not supported");
-
     util::run_as_root(None)?;
 
     if !m.is_present("skip_check") {
@@ -234,9 +225,6 @@ fn remove(m: &ArgMatches) -> Result<()> {
 
 /// To be run by Systemd, runs until stopped
 fn daemon(m: &ArgMatches) -> Result<()> {
-    #[cfg(not(target_os = "linux"))]
-    panic!("Platform not supported");
-
     let install = m.is_present("install");
     let enable = m.is_present("enable");
 

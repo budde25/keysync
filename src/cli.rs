@@ -161,7 +161,8 @@ pub fn app() -> App<'static, 'static> {
                 .long("enable"),
         );
 
-    App::new(clap::crate_name!())
+    #[cfg(target_os = "linux")]
+    let app = App::new(clap::crate_name!())
         .version(clap::crate_version!())
         .author(clap::crate_authors!())
         .about(clap::crate_description!())
@@ -178,7 +179,25 @@ pub fn app() -> App<'static, 'static> {
                 .short("v")
                 .multiple(true)
                 .global(true),
-        )
+        );
+
+    #[cfg(not(target_os = "linux"))]
+    let app = App::new(clap::crate_name!())
+        .version(clap::crate_version!())
+        .author(clap::crate_authors!())
+        .about(clap::crate_description!())
+        .setting(AppSettings::SubcommandRequiredElseHelp)
+        .global_settings(&settings)
+        .subcommand(get)
+        .arg(
+            Arg::with_name("verbosity")
+                .help("Verbose mode (-v, -vv, -vvv)")
+                .short("v")
+                .multiple(true)
+                .global(true),
+        );
+
+    app
 }
 
 /// Custom validator, returns () if val is u32, error otherwise
