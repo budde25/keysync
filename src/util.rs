@@ -7,7 +7,8 @@ use std::process::{exit, Command};
 // From regex example
 macro_rules! regex {
     ($re:literal $(,)?) => {{
-        static RE: once_cell::sync::OnceCell<regex::Regex> = once_cell::sync::OnceCell::new();
+        static RE: once_cell::sync::OnceCell<regex::Regex> =
+            once_cell::sync::OnceCell::new();
         RE.get_or_init(|| regex::Regex::new($re).unwrap())
     }};
 }
@@ -41,7 +42,10 @@ pub fn split_keys(all_keys: &str) -> Vec<String> {
 pub fn clean_keys(original_keys: Vec<String>) -> Vec<String> {
     original_keys
         .iter()
-        .map(|x| x.split(' ').map(|x| x.to_owned()).collect::<Vec<String>>()[0..2].join(" "))
+        .map(|x| {
+            x.split(' ').map(|x| x.to_owned()).collect::<Vec<String>>()[0..2]
+                .join(" ")
+        })
         .collect()
 }
 
@@ -60,7 +64,8 @@ pub fn run_as_root(user: Option<&str>) -> Result<()> {
 
         match result {
             Ok(mut sudo) => {
-                let output = sudo.wait().expect("Command failed to request root");
+                let output =
+                    sudo.wait().expect("Command failed to request root");
                 if output.success() {
                     exit(0);
                 } else {

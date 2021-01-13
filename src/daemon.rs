@@ -23,18 +23,15 @@ impl Daemon {
         let scheduler: JobScheduler = JobScheduler::new();
         let sleep_time: Duration = Duration::from_secs(60); // 1 minute
         let last_modifided: FileTime = db_last_modified()?;
-        Ok(Daemon {
-            sleep_time,
-            scheduler,
-            last_modifided,
-        })
+        Ok(Daemon { sleep_time, scheduler, last_modifided })
     }
 
     /// Starts the daemon
     pub fn start(&mut self) {
         self.schedule();
         loop {
-            let modified: FileTime = db_last_modified().unwrap_or(self.last_modifided);
+            let modified: FileTime =
+                db_last_modified().unwrap_or(self.last_modifided);
             if self.last_modifided != modified {
                 self.last_modifided = modified;
                 let scheduler: JobScheduler = JobScheduler::new();
@@ -77,7 +74,10 @@ impl Daemon {
             };
 
             match AuthorizedKeys::open(Some(&user)) {
-                Ok(_) => debug!("authorized keys file for {} exists or was created", &user),
+                Ok(_) => debug!(
+                    "authorized keys file for {} exists or was created",
+                    &user
+                ),
                 Err(e) => {
                     error!(
                         "Unable to create authorized keys file for user {}. {}",
@@ -95,7 +95,9 @@ impl Daemon {
                 }
             };
 
-            let job = Job::new(cron, move || run_job(user.to_owned(), url.to_owned()));
+            let job = Job::new(cron, move || {
+                run_job(user.to_owned(), url.to_owned())
+            });
             self.scheduler.add(job);
         }
     }
@@ -121,7 +123,9 @@ fn run_job(user: String, url: Url) {
     };
 
     match authorzed_keys.write_keys(keys, false) {
-        Ok(count) => println!("Added {} keys to a {} authorized_keys file", user, count),
+        Ok(count) => {
+            println!("Added {} keys to a {} authorized_keys file", user, count)
+        }
         Err(e) => error!("{}", e),
     };
 }

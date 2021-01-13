@@ -95,11 +95,7 @@ fn get(m: &ArgMatches) -> Result<()> {
 
     let dry_run = m.is_present("dry_run");
     let count = authorized_keys.write_keys(keys, dry_run)?;
-    println!(
-        "{} {} new keys",
-        if dry_run { "Found" } else { "Added" },
-        count
-    );
+    println!("{} {} new keys", if dry_run { "Found" } else { "Added" }, count);
 
     Ok(())
 }
@@ -153,7 +149,10 @@ fn set(m: &ArgMatches) -> Result<()> {
         let database = Database::open()?;
         for url in urls {
             if database.add_schedule(&user, &cron.to_string(), &url)? {
-                println!("Successfully added import schedule with url: {}", url);
+                println!(
+                    "Successfully added import schedule with url: {}",
+                    url
+                );
             } else {
                 return Err(anyhow!("Job already exists"));
             }

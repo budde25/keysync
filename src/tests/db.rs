@@ -21,31 +21,38 @@ fn test_get_last_modified() {
 /// Tests that schedule only excepts good data
 #[test]
 fn test_new_schedule() {
-    Schedule::new(None, "budd", "foo", "bar").expect_err("Bad data should error");
-    Schedule::new(None, "budd", "foo", "https://github.com").expect_err("Bad data should error");
-    Schedule::new(None, "budd", "@daily", "bar").expect_err("Bad data should error");
-    Schedule::new(Some(1), "budd", "@daily", "https://github.com").expect("Data should pass");
+    Schedule::new(None, "budd", "foo", "bar")
+        .expect_err("Bad data should error");
+    Schedule::new(None, "budd", "foo", "https://github.com")
+        .expect_err("Bad data should error");
+    Schedule::new(None, "budd", "@daily", "bar")
+        .expect_err("Bad data should error");
+    Schedule::new(Some(1), "budd", "@daily", "https://github.com")
+        .expect("Data should pass");
 }
 
 /// Tests that the db file is properly created
 #[test]
 fn test_db_creation() {
     let temp = assert_fs::TempDir::new().unwrap();
-    Database::open_path(temp.path().join("file.db")).expect("Should create the database file"); // No file the first time
+    Database::open_path(temp.path().join("file.db"))
+        .expect("Should create the database file"); // No file the first time
     let db = temp.child("file2.db");
     db.touch().unwrap();
-    Database::open_path(db.path()).expect("Should setup database on empty file");
+    Database::open_path(db.path())
+        .expect("Should setup database on empty file");
     let db_text = temp.child("file2.txt"); // Also try bad file ext
     db_text.touch().unwrap();
-    Database::open_path(db.path()).expect("Should setup database on empty file, even for text");
+    Database::open_path(db.path())
+        .expect("Should setup database on empty file, even for text");
 }
 
 /// Tests that the db file is properly created
 #[test]
 fn test_add_schedule() {
     let temp = assert_fs::TempDir::new().unwrap();
-    let db =
-        Database::open_path(temp.path().join("file.db")).expect("Should create the database file");
+    let db = Database::open_path(temp.path().join("file.db"))
+        .expect("Should create the database file");
     assert!(db
         .add_schedule("budd", "@daily", "https://github.com")
         .expect("No problems here"));
@@ -61,8 +68,8 @@ fn test_add_schedule() {
 #[test]
 fn test_get_schedule() {
     let temp = assert_fs::TempDir::new().unwrap();
-    let db =
-        Database::open_path(temp.path().join("file.db")).expect("Should create the database file");
+    let db = Database::open_path(temp.path().join("file.db"))
+        .expect("Should create the database file");
     assert!(db
         .add_schedule("budd", "@daily", "https://github.com")
         .expect("No problems here"));
@@ -83,8 +90,8 @@ fn test_get_schedule() {
 #[test]
 fn test_remove_schedule() {
     let temp = assert_fs::TempDir::new().unwrap();
-    let db =
-        Database::open_path(temp.path().join("file.db")).expect("Should create the database file");
+    let db = Database::open_path(temp.path().join("file.db"))
+        .expect("Should create the database file");
     assert!(db
         .add_schedule("budd", "@daily", "https://github.com")
         .expect("No problems here"));
@@ -100,12 +107,10 @@ fn test_remove_schedule() {
 
     for i in db.get_schedules().expect("Should get") {
         let int = i.id.unwrap();
-        db.delete_schedule(int)
-            .expect("They exist so they should delete");
+        db.delete_schedule(int).expect("They exist so they should delete");
     }
 
     assert_eq!(db.get_schedules().unwrap().len(), 0);
 
-    db.delete_schedule(0)
-        .expect("Can't remove when there are none");
+    db.delete_schedule(0).expect("Can't remove when there are none");
 }
