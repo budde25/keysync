@@ -25,9 +25,7 @@ enum KeysyncService {
 pub fn check() -> Result<()> {
     let status = get_service_status()?;
     if status == KeysyncService::NotInstalled {
-        if util::get_confirmation(
-            "Systemd service file not installed, would you like it install and enable it now?",
-        )? {
+        if util::get_confirmation("Systemd service file not installed, would you like it install and enable it now?")? {
             // Install and enable
             let mut cmd = Command::new("sudo")
                 .arg(env!("CARGO_PKG_NAME"))
@@ -44,8 +42,9 @@ pub fn check() -> Result<()> {
     }
 
     if status == KeysyncService::Stopped {
-        if util::get_confirmation("keysync service not running, would you like to enable it now?")?
-        {
+        if util::get_confirmation(
+            "keysync service not running, would you like to enable it now?",
+        )? {
             // Enable
             let mut cmd = Command::new("sudo")
                 .arg(env!("CARGO_PKG_NAME"))

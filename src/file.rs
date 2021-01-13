@@ -19,7 +19,8 @@ impl AuthorizedKeys {
     pub fn open_path<P: AsRef<Path>>(path: P) -> Result<Self> {
         let pathbuf = path.as_ref().to_path_buf();
         if !pathbuf.is_file() {
-            File::create(&path).context("Failed to create the AuthorizedKeys file")?;
+            File::create(&path)
+                .context("Failed to create the AuthorizedKeys file")?;
         }
         Ok(AuthorizedKeys { path: pathbuf })
     }
@@ -41,16 +42,10 @@ impl AuthorizedKeys {
             if let Some(file_path) = path.parent() {
                 if !file_path.is_dir() {
                     fs::create_dir_all(file_path).with_context(|| {
-                        format!(
-                            "Failed to create the directory [{}] for the authorized_keys file",
-                            file_path.display()
-                        )
+                        format!("Failed to create the directory [{}] for the authorized_keys file", file_path.display())
                     })?;
                     chown(file_path, Some(ids.0), Some(ids.1)).with_context(|| {
-                        format!(
-                            "Failed to set the folder [{}] ownership to user",
-                            file_path.display()
-                        )
+                        format!("Failed to set the folder [{}] ownership to user", file_path.display())
                     })?;
                 }
             }
@@ -74,15 +69,21 @@ impl AuthorizedKeys {
     /// Gets array of current authorized keys, and true if the keys file ends with a newline, false otherwise
     fn get_keys(&self) -> Result<(Vec<String>, bool)> {
         info!("Reading keys to {}", self.path.display());
-        let keys_string = fs::read_to_string(&self.path)
-            .with_context(|| format!("Error reading keys from file: {}", self.path.display()))?;
+        let keys_string =
+            fs::read_to_string(&self.path).with_context(|| {
+                format!("Error reading keys from file: {}", self.path.display())
+            })?;
         let keys = util::clean_keys(util::split_keys(&keys_string));
         let ends_with_newline = keys_string.ends_with('\n');
         Ok((keys, ends_with_newline))
     }
 
     /// Writes array of keys to authorized keys file, returns amount of keys to write or written
-    pub fn write_keys(&self, keys: Vec<String>, dry_run: bool) -> Result<usize> {
+    pub fn write_keys(
+        &self,
+        keys: Vec<String>,
+        dry_run: bool,
+    ) -> Result<usize> {
         let (existing_keys, ends_with_newline) = self.get_keys()?;
         let keys_to_add = util::filter_keys(keys, existing_keys);
 
@@ -93,21 +94,21 @@ impl AuthorizedKeys {
             return Ok(keys_to_add.len());
         }
 
-        let prefix = if !ends_with_newline {
-            String::from("\n")
-        } else {
-            String::new()
-        };
+        let prefix =
+            if !ends_with_newline { String::from("\n") } else { String::new() };
         let content: String = prefix + &keys_to_add.join("\n") + "\n"; // We want each to be on its own line while also appending a newline
 
         let mut file: File = fs::OpenOptions::new()
             .write(true)
             .append(true)
             .open(&self.path)
-            .with_context(|| format!("Error opening keys file: {}", self.path.display()))?;
+            .with_context(|| {
+                format!("Error opening keys file: {}", self.path.display())
+            })?;
 
-        file.write_all(content.as_bytes())
-            .with_context(|| format!("Error writing keys from file: {}", self.path.display()))?;
+        file.write_all(content.as_bytes()).with_context(|| {
+            format!("Error writing keys from file: {}", self.path.display())
+        })?;
         Ok(keys_to_add.len())
     }
 }
@@ -115,9 +116,9 @@ impl AuthorizedKeys {
 /// Gets the User Id and Group Id of user provided, if no user was provided just returns the current user
 fn get_uid_gid<S: AsRef<str>>(user: Option<S>) -> Result<(Uid, Gid)> {
     if let Some(u) = user {
-        match User::from_name(u.as_ref())
-            .with_context(|| format!("Unable to get the Uid and Gid of user: {}", u.as_ref()))?
-        {
+        match User::from_name(u.as_ref()).with_context(|| {
+            format!("Unable to get the Uid and Gid of user: {}", u.as_ref())
+        })? {
             Some(user) => Ok((user.uid, user.gid)),
             None => Ok((Uid::current(), Gid::current())),
         }

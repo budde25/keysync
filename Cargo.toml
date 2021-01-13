@@ -1,6 +1,6 @@
 [package]
 name = "keysync"
-version = "3.0.0"
+version = "3.0.1"
 authors = ["Ethan Budd <budde25@protonmail.com>"]
 edition = "2018"
 description = "A utility to sync local authorized_keys file updated with your with Github, Gitlab, and Launchpad public keys"
@@ -27,8 +27,8 @@ systemd-units = { enable = true }
 
 
 [dependencies]
-reqwest = { version = "0.10", features = ["json"] }
-tokio = { version = "0.2", features = ["full"] }
+reqwest = { version = "0.11", features = ["json"] }
+tokio = { version = "1", features = ["full"] }
 anyhow = "1.0"
 dirs = "3.0"
 url = "2.2"
@@ -40,7 +40,7 @@ log = "0.4"
 nix = "0.19"
 clap = "2.33"
 rusqlite = "0.24"
-rustyline = "7.0"
+rustyline = "7.1"
 regex = "1.4"
 once_cell = "1.5"
 unindent = "0.1"

@@ -30,20 +30,29 @@ impl Network {
     /// Gets the SSH keys from a requested url (as string)
     /// Return a Vector of Strings that have been cleaned
     #[tokio::main]
-    pub async fn get_keys<S: AsRef<str>>(&self, request_url: S) -> Result<Vec<String>> {
+    pub async fn get_keys<S: AsRef<str>>(
+        &self,
+        request_url: S,
+    ) -> Result<Vec<String>> {
         let response: Result<Response, Error> = self
             .client
             .get(request_url.as_ref())
             .send()
             .await
-            .with_context(|| format!("Error getting keys from: {}", request_url.as_ref()))?
+            .with_context(|| {
+                format!("Error getting keys from: {}", request_url.as_ref())
+            })?
             .error_for_status();
 
         match response {
             Ok(resp) => {
                 let text = resp.text().await?;
                 let keys = util::clean_keys(util::split_keys(&text));
-                debug!("Retrived {} keys from {}", keys.len(), request_url.as_ref());
+                debug!(
+                    "Retrived {} keys from {}",
+                    keys.len(),
+                    request_url.as_ref()
+                );
                 Ok(keys)
             }
             Err(e) => Err(anyhow!("{}", e)),
@@ -60,8 +69,13 @@ impl Network {
         gitlab_url: Option<Url>,
     ) -> Result<Vec<String>> {
         let mut all_keys: Vec<String> = vec![];
-        let urls: Vec<String> =
-            create_urls(username.as_ref(), github, launchpad, gitlab, gitlab_url);
+        let urls: Vec<String> = create_urls(
+            username.as_ref(),
+            github,
+            launchpad,
+            gitlab,
+            gitlab_url,
+        );
         for url in urls {
             let mut keys = self.get_keys(url)?;
             all_keys.append(&mut keys);

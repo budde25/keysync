@@ -19,7 +19,7 @@ More releases coming soon.
 ## Usage
 
 ```lang-none
-keysync 3.0.0
+keysync 3.0.1
 Ethan Budd <budde25@protonmail.com>
 A utility to sync local authorized_keys file updated with your with Github, Gitlab, and Launchpad public keys
 
@@ -45,9 +45,9 @@ Use `keysync help <subcommand>` for help with that subcommand.
 Examples:  
 `keysync get <username>` Downloads the public keys from github for the username.  
 `keysync get --gitlab <url> <username>` Downloads the public keys from gitlab for the username, a url must be provided or '' for `https://gitlab.com`.  
-`keysync add <username> <schedule>` Adds automatic job for the user, where username is the Github or Gitlab username.  
+`keysync set <username> <schedule>` Adds automatic job for the user, where username is the Github or Gitlab username.  
 Valid schedules are [Hourly, Daily, Weekly, Monthly, Custom]  
-`keysync add <username> custom -c <cron>` Adds automactic job for user with custom cron schedule.  
+`keysync set <username> custom -c <cron>` Adds automactic job for user with custom cron schedule.  
 
 ## Setup
 

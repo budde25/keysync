@@ -35,7 +35,9 @@ impl DefaultCron {
             DefaultCron::Hourly => cron::Schedule::from_str("@hourly").unwrap(),
             DefaultCron::Daily => cron::Schedule::from_str("@daily").unwrap(),
             DefaultCron::Weekly => cron::Schedule::from_str("@weekly").unwrap(),
-            DefaultCron::Monthly => cron::Schedule::from_str("@monthly").unwrap(),
+            DefaultCron::Monthly => {
+                cron::Schedule::from_str("@monthly").unwrap()
+            }
         }
     }
 }
@@ -43,10 +45,10 @@ impl DefaultCron {
 /// Generate the programs CLI
 pub fn app() -> App<'static, 'static> {
     let settings = [
-        AppSettings::ColoredHelp,            // Displays color, (not on windows)
-        AppSettings::InferSubcommands,       // Hints
+        AppSettings::ColoredHelp, // Displays color, (not on windows)
+        AppSettings::InferSubcommands, // Hints
         AppSettings::VersionlessSubcommands, // No -V on subcommands
-        AppSettings::StrictUtf8,             // Avoids panic while getting, Utf8 value
+        AppSettings::StrictUtf8,  // Avoids panic while getting, Utf8 value
     ];
 
     // Define some repeated args
@@ -121,12 +123,7 @@ pub fn app() -> App<'static, 'static> {
                 .long("cron")
                 .validator(is_cron),
         )
-        .arg(
-            Arg::with_name("now")
-                .help("Also runs in addition to adding to schedule")
-                .short("n")
-                .long("now"),
-        )
+        .arg(Arg::with_name("now").help("Also runs in addition to adding to schedule").short("n").long("now"))
         .arg(&arg_github)
         .arg(&arg_launchpad)
         .arg(&arg_gitlab)
@@ -150,18 +147,11 @@ pub fn app() -> App<'static, 'static> {
 
     let daemon = SubCommand::with_name("daemon")
         .about("Runs job daemon in background (No need to run, systemd will manage for you)")
-        .arg(
-            Arg::with_name("install")
-                .help("Install the Systemd service file")
-                .long("install"),
-        )
-        .arg(
-            Arg::with_name("enable")
-                .help("Enable the keysync service")
-                .long("enable"),
-        );
+        .arg(Arg::with_name("install").help("Install the Systemd service file").long("install"))
+        .arg(Arg::with_name("enable").help("Enable the keysync service").long("enable"));
 
-    App::new(clap::crate_name!())
+    #[cfg(target_os = "linux")]
+    let app = App::new(clap::crate_name!())
         .version(clap::crate_version!())
         .author(clap::crate_authors!())
         .about(clap::crate_description!())
@@ -178,7 +168,25 @@ pub fn app() -> App<'static, 'static> {
                 .short("v")
                 .multiple(true)
                 .global(true),
-        )
+        );
+
+    #[cfg(not(target_os = "linux"))]
+    let app = App::new(clap::crate_name!())
+        .version(clap::crate_version!())
+        .author(clap::crate_authors!())
+        .about(clap::crate_description!())
+        .setting(AppSettings::SubcommandRequiredElseHelp)
+        .global_settings(&settings)
+        .subcommand(get)
+        .arg(
+            Arg::with_name("verbosity")
+                .help("Verbose mode (-v, -vv, -vvv)")
+                .short("v")
+                .multiple(true)
+                .global(true),
+        );
+
+    app
 }
 
 /// Custom validator, returns () if val is u32, error otherwise
@@ -196,9 +204,7 @@ fn is_url_or_empty(val: String) -> Result<(), String> {
 
 /// Custom validator, returns () if val is valid cron schedule, error otherwise
 fn is_cron(val: String) -> Result<(), String> {
-    val.parse::<Schedule>()
-        .map(|_| ())
-        .map_err(|x| x.to_string())
+    val.parse::<Schedule>().map(|_| ()).map_err(|x| x.to_string())
 }
 
 /// Custom validator, returns () if val the user exists on the system, error otherwise

@@ -37,7 +37,12 @@ impl fmt::Display for Schedule {
 
 impl Schedule {
     /// Creates a new schedule object and also verifies the types
-    pub fn new<S: AsRef<str>>(id: Option<u32>, user: S, cron: S, url: S) -> Result<Self> {
+    pub fn new<S: AsRef<str>>(
+        id: Option<u32>,
+        user: S,
+        cron: S,
+        url: S,
+    ) -> Result<Self> {
         if cron::Schedule::from_str(cron.as_ref()).is_err() {
             return Err(anyhow!(
                 "Failed to parse cron expression: {}",
@@ -110,12 +115,19 @@ impl Database {
     pub fn delete_schedule(&self, id: u32) -> Result<()> {
         self.connection
             .execute("DELETE FROM Schedule WHERE ID = ?1", params![id])
-            .with_context(|| format!("Error deleting databse entry with id: {}", id))?;
+            .with_context(|| {
+                format!("Error deleting databse entry with id: {}", id)
+            })?;
         Ok(())
     }
 
     /// Adds a new schedule to the database
-    pub fn add_schedule<S: AsRef<str>>(&self, user: S, cron: S, url: S) -> Result<bool> {
+    pub fn add_schedule<S: AsRef<str>>(
+        &self,
+        user: S,
+        cron: S,
+        url: S,
+    ) -> Result<bool> {
         let schedule = Schedule::new(None, user, cron, url)?;
         let result: Result<usize, Error> = self.connection.execute(
             "INSERT INTO Schedule (user, cron, url) VALUES (?1, ?2, ?3)",
@@ -146,7 +158,9 @@ impl Database {
 
         Ok(schedule_iter
             .filter_map(|x| x.ok())
-            .map(|x: (u32, String, String, String)| Schedule::new(Some(x.0), x.1, x.2, x.3))
+            .map(|x: (u32, String, String, String)| {
+                Schedule::new(Some(x.0), x.1, x.2, x.3)
+            })
             .filter_map(|x| x.ok())
             .collect())
     }
