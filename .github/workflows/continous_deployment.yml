@@ -2,6 +2,8 @@ on:
   repository_dispatch:
     types: [tag-created]
 
+name: CD
+
 jobs:
   build-bin: 
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/')

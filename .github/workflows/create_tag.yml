@@ -3,7 +3,7 @@ on:
     branches:
       - main
 
-name: Bump version, create new tag and release point
+name: Create Tag
 
 jobs:
   bump_version:
