@@ -8,7 +8,7 @@ description: |
   This application can be used for either as one time sync when run, or running automatically in the 
   background as a systemd service. You can have the file it updated at a preset interval or a custom 
   cron expression, you can even support multiple users and providers.
-base: core18
+base: core20
 confinement: devmode
 grade: stable
 
@@ -26,6 +26,9 @@ parts:
       - build-essential
       - libssl-dev
       - pkg-config
+      - libsqlite3-dev
+    stage-packages:
+      - libsqlite3-dev
 
 apps:
   keysync:
@@ -34,7 +37,7 @@ apps:
       - network
       - auth-keys
   keysync-daemon:
-    command: bin/keysync
+    command: bin/keysync daemon
     daemon: simple
     plugs:
       - network

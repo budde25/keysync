@@ -1,70 +1,147 @@
-use reqwest::Client;
-use reqwest::ClientBuilder;
-use reqwest::Error;
-use reqwest::Response;
+use anyhow::{anyhow, Context, Result};
+use log::{debug, info};
+use reqwest::{Client, ClientBuilder, Error, Response};
 use std::time::Duration;
+use std::vec;
 use url::Url;
 
-pub const GITHUB_URL: &str = "https://github.com/";
-pub const GITLAB_URL: &str = "https://gitlab.com/";
+use super::util;
 
-/// creates the client
-fn get_client() -> Result<Client, Error> {
-    let timeout = Duration::new(10, 0);
-    Ok(ClientBuilder::new().timeout(timeout).build()?)
+const GITHUB_URL: &str = "https://github.com/";
+const GITLAB_URL: &str = "https://gitlab.com/";
+const LAUNCHPAD_URL: &str = "https://launchpad.net/";
+
+/// Network key request implementation
+pub struct Network {
+    client: Client,
 }
 
-/// Gets the ssh keys from gitlab
-#[tokio::main]
-pub async fn get_standard(username: &str, url: Url) -> Result<String, Error> {
-    let request: String = format!(
-        "{url}{user}{ext}",
-        url = url,
-        user = username,
-        ext = ".keys"
+impl Network {
+    /// Creates the Network class, import since it is reccomended to reuse the same client for all requests
+    pub fn new() -> Self {
+        let timeout = Duration::new(10, 0);
+        let network = Network {
+            client: ClientBuilder::new().timeout(timeout).build().unwrap(),
+        };
+        info!("Created Network object");
+        network
+    }
+
+    /// Gets the SSH keys from a requested url (as string)
+    /// Return a Vector of Strings that have been cleaned
+    #[tokio::main]
+    pub async fn get_keys<S: AsRef<str>>(
+        &self,
+        request_url: S,
+    ) -> Result<Vec<String>> {
+        let response: Result<Response, Error> = self
+            .client
+            .get(request_url.as_ref())
+            .send()
+            .await
+            .with_context(|| {
+                format!("Error getting keys from: {}", request_url.as_ref())
+            })?
+            .error_for_status();
+
+        match response {
+            Ok(resp) => {
+                let text = resp.text().await?;
+                let keys = util::clean_keys(util::split_keys(&text));
+                debug!(
+                    "Retrived {} keys from {}",
+                    keys.len(),
+                    request_url.as_ref()
+                );
+                Ok(keys)
+            }
+            Err(e) => Err(anyhow!("{}", e)),
+        }
+    }
+
+    /// Gets all the keys from the provided services, if none are selected it will still grab from Github
+    pub fn get_keys_services<S: AsRef<str>>(
+        &self,
+        username: S,
+        github: bool,
+        launchpad: bool,
+        gitlab: bool,
+        gitlab_url: Option<Url>,
+    ) -> Result<Vec<String>> {
+        let mut all_keys: Vec<String> = vec![];
+        let urls: Vec<String> = create_urls(
+            username.as_ref(),
+            github,
+            launchpad,
+            gitlab,
+            gitlab_url,
+        );
+        for url in urls {
+            let mut keys = self.get_keys(url)?;
+            all_keys.append(&mut keys);
+        }
+
+        all_keys.sort();
+        all_keys.dedup(); // Dedup inneffective without sorted keys
+        info!("Retrived {} unique keys", all_keys.len());
+        Ok(all_keys)
+    }
+}
+
+/// Returns a list of urls based for each service
+pub fn create_urls(
+    username: &str,
+    github: bool,
+    launchpad: bool,
+    gitlab: bool,
+    gitlab_url: Option<Url>,
+) -> Vec<String> {
+    // if none are selected default to GitHub
+    let real_github = !github && !launchpad && !gitlab;
+    debug!(
+        "Creating URLS with username: {} for GitHub: {}, Launchpad: {}, Gitlab: {}, URL: {:?}",
+        username, github, launchpad, gitlab, gitlab_url
     );
 
-    let client: Client = get_client()?;
-
-    let response: Result<Response, Error> = client.get(&request).send().await?.error_for_status();
-
-    match response {
-        Ok(resp) => return Ok(resp.text().await?),
-        Err(e) => return Err(e),
-    }
+    let mut urls: Vec<String> = vec![];
+    if real_github || github {
+        urls.push(get_github(username))
+    };
+    if launchpad {
+        urls.push(get_launchpad(username))
+    };
+    if gitlab {
+        urls.push(get_gitlab(username, gitlab_url))
+    };
+    debug!("URLS that have been generated: {:?}", urls);
+    urls
 }
 
-// TESTS
+/// Creates a GitHub keys url with a username
+fn get_github(username: &str) -> String {
+    let url = format!("{}{}.keys", GITHUB_URL, username);
+    debug!("GitHub URL: {}", url);
+    url
+}
+
+/// Creates a GitLab keys urls with a username and url, if no url is provided it uses the default (https://gitlab.com)
+fn get_gitlab(username: &str, url: Option<Url>) -> String {
+    let url = match url {
+        Some(u) => format!("{}{}.keys", u, username),
+        None => format!("{}{}.keys", GITLAB_URL, username),
+    };
+    debug!("GitLab URL: {}", url);
+    url
+}
+
+/// Creates a Launchpad keys url with a username
+fn get_launchpad(username: &str) -> String {
+    let url = format!("{}~{}/+sshkeys", LAUNCHPAD_URL, username);
+    debug!("Launchpad URL: {}", url);
+    url
+}
+
+// Unit Tests
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use url::Url;
-
-    #[test]
-    #[ignore]
-    fn get_github_budde25() {
-        let url = Url::parse(GITHUB_URL).unwrap();
-        get_standard("budde25", url).expect("Args are valid should return a result");
-    }
-
-    #[test]
-    #[ignore]
-    fn get_gitlab_budde25() {
-        let url = Url::parse(GITLAB_URL).unwrap();
-        get_standard("budde25", url).expect("Args are valid should return a result");
-    }
-
-    #[test]
-    #[ignore]
-    fn get_wisc_gitlab_budd() {
-        let url = Url::parse("https://gitlab.cs.wisc.edu").unwrap();
-        get_standard("budd", url).expect("Args are valid should return a result");
-    }
-
-    #[test]
-    #[ignore]
-    fn get_invalid_url() {
-        let url = Url::parse("https://abc.edu").unwrap();
-        get_standard("budd", url).expect_err("Args are valid should not return a result");
-    }
-}
+#[path = "./tests/http.rs"]
+mod test;

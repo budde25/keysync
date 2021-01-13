@@ -1,104 +1,131 @@
-use super::http;
-use job_scheduler::Job;
-use job_scheduler::JobScheduler;
-use log::{debug, error};
-use std::{thread, time};
+use anyhow::Result;
+use filetime::FileTime;
+use job_scheduler::{Job, JobScheduler};
+use log::{debug, error, info};
+use std::{str::FromStr, thread::sleep, time::Duration};
 use url::Url;
 
-use super::file;
-use super::util;
+use super::db::{db_last_modified, Database, Schedule};
+use super::file::AuthorizedKeys;
+use super::http::Network;
 
-pub fn start() -> anyhow::Result<()> {
-    file::create_schedule_if_not_exist()?;
-
-    let mut sched = JobScheduler::new();
-    sched = schedule_tasks(sched)?;
-    let sleep_time = time::Duration::from_millis(60 * 1000); // 1 minute
-    let mut last_modified = file::schedule_last_modified()?;
-
-    loop {
-        let new_last_modified = file::schedule_last_modified()?;
-        if last_modified != new_last_modified {
-            last_modified = new_last_modified;
-            sched = JobScheduler::new();
-            sched = schedule_tasks(sched)?;
-        }
-
-        sched.tick();
-
-        thread::sleep(sleep_time);
-    }
+/// An implementation of the daemon
+pub struct Daemon {
+    sleep_time: Duration,
+    scheduler: JobScheduler<'static>,
+    last_modifided: FileTime,
 }
 
-fn schedule_tasks(mut sched: JobScheduler) -> anyhow::Result<JobScheduler> {
-    println!("Schduling jobs");
-    let schedule: Vec<String> = file::get_schedule()?;
-    for item in schedule {
-        // Skips any empty lines
-        if item.trim().is_empty() {
-            continue;
-        }
+impl Daemon {
+    /// Creates a new daemon
+    pub fn new() -> Result<Self> {
+        Database::open()?;
+        let scheduler: JobScheduler = JobScheduler::new();
+        let sleep_time: Duration = Duration::from_secs(60); // 1 minute
+        let last_modifided: FileTime = db_last_modified()?;
+        Ok(Daemon { sleep_time, scheduler, last_modifided })
+    }
 
-        let data: Vec<String> = item.split('|').map(|x| x.to_owned()).collect();
-        let user: String = data[0].clone();
-        let cron: String = data[1].clone();
-        let url: Url = Url::parse(&data[2])?;
-        let username: String = data[3].clone();
-
-        match cron.parse() {
-            Ok(valid) => {
-                match file::create_file_for_user(Some(&user)) {
-                    Ok(_) => debug!("authorized keys file for {} exists or was created", user),
-                    Err(e) => {
-                        error!(
-                            "Unable to create authorized keys file for user {}. {}",
-                            user, e
-                        );
-                        continue;
-                    }
-                };
-
-                sched.add(Job::new(valid, move || {
-                    run_job(user.to_owned(), url.to_owned(), username.to_owned())
-                }));
-                println!("Scheduled item {}", item);
+    /// Starts the daemon
+    pub fn start(&mut self) {
+        self.schedule();
+        loop {
+            let modified: FileTime =
+                db_last_modified().unwrap_or(self.last_modifided);
+            if self.last_modifided != modified {
+                self.last_modifided = modified;
+                let scheduler: JobScheduler = JobScheduler::new();
+                // Schedule tasks
+                self.schedule();
+                self.scheduler = scheduler;
             }
-            Err(_) => {
-                println!("Cron {} failed to be parsed, skipping...", cron);
-                continue;
-            }
+            self.scheduler.tick();
+            sleep(self.sleep_time);
         }
     }
 
-    Ok(sched)
+    /// Adds a new job the the job schedule
+    fn schedule(&mut self) {
+        info!("Scheduling jobs");
+        let database: Database = match Database::open() {
+            Ok(d) => d,
+            Err(e) => {
+                error!("{}", e);
+                return;
+            }
+        };
+
+        let schedules: Vec<Schedule> = match database.get_schedules() {
+            Ok(d) => d,
+            Err(e) => {
+                error!("{}", e);
+                return;
+            }
+        };
+
+        for schedule in schedules {
+            let user: String = schedule.user.to_string();
+            let url: Url = match Url::parse(&schedule.url) {
+                Ok(u) => u,
+                Err(e) => {
+                    error!("{}", e);
+                    continue;
+                }
+            };
+
+            match AuthorizedKeys::open(Some(&user)) {
+                Ok(_) => debug!(
+                    "authorized keys file for {} exists or was created",
+                    &user
+                ),
+                Err(e) => {
+                    error!(
+                        "Unable to create authorized keys file for user {}. {}",
+                        &user, e
+                    );
+                    continue;
+                }
+            }
+
+            let cron = match job_scheduler::Schedule::from_str(&schedule.cron) {
+                Ok(c) => c,
+                Err(e) => {
+                    error!("{}", e);
+                    continue;
+                }
+            };
+
+            let job = Job::new(cron, move || {
+                run_job(user.to_owned(), url.to_owned())
+            });
+            self.scheduler.add(job);
+        }
+    }
 }
 
-fn run_job(user: String, url: Url, username: String) {
-    let content = http::get_standard(&username, url);
-
-    let clean_content = match content {
-        Ok(clean) => clean,
-        Err(_) => return,
+/// Runs a job that is on the schedule
+fn run_job(user: String, url: Url) {
+    let network = Network::new();
+    let keys = match network.get_keys(&url) {
+        Ok(c) => c,
+        Err(e) => {
+            error!("{}", e);
+            return;
+        }
     };
 
-    let keys = util::split_keys(&clean_content);
-    let exist = match file::get_current_keys(Some(&user)) {
-        Ok(key) => key,
-        Err(_) => return,
-    };
-    let keys_to_add: Vec<String> = util::filter_keys(keys, exist);
-    let num_keys_to_add: usize = keys_to_add.len();
-
-    match file::create_file_for_user(Some(&user)) {
-        Ok(_) => (),
-        Err(e) => eprint!("failed to create file for user. {}", e),
+    let authorzed_keys = match AuthorizedKeys::open(Some(&user)) {
+        Ok(a) => a,
+        Err(e) => {
+            error!("{}", e);
+            return;
+        }
     };
 
-    match file::write_keys(keys_to_add, Some(&user)) {
-        Ok(_) => println!(
-            "Added {} to {}'s authorized_keys file",
-            num_keys_to_add, user
-        ),
-        Err(e) => eprint!("failed to write keys to file. {}", e),
+    match authorzed_keys.write_keys(keys, false) {
+        Ok(count) => {
+            println!("Added {} keys to a {} authorized_keys file", user, count)
+        }
+        Err(e) => error!("{}", e),
     };
 }
