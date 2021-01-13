@@ -21,6 +21,7 @@ fn test_get_dry_run() {
 }
 
 #[test]
+#[ignore = "requires sudo"]
 fn test_set_dry_run() {
     let output = Command::cargo_bin(env!("CARGO_PKG_NAME"))
         .unwrap()
