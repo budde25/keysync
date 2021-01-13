@@ -6,7 +6,6 @@ name: CD
 
 jobs:
   build-bin: 
-    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/')
     name: Build Bin
     runs-on: ubuntu-latest
     steps:
@@ -24,7 +23,6 @@ jobs:
           path: target/release/keysync
         
   build-deb: 
-    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/')
     name: Build Deb
     runs-on: ubuntu-latest
     steps:
@@ -44,7 +42,6 @@ jobs:
           path: target/debian/*.deb
         
   release:
-    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/')
     name: Publish Release
     needs: [build-bin, build-deb]
     runs-on: ubuntu-latest
@@ -71,7 +68,6 @@ jobs:
         file_glob: true
 
   release-cargo:
-    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/')
     name: Publish Cargo
     runs-on: ubuntu-latest
 
