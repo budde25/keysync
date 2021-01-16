@@ -65,13 +65,13 @@ pub struct Database {
 }
 
 impl Database {
-    /// Opens and create (if nonesistant) a database in the default path;
+    /// Opens and create (if nonexistent) a database in the default path;
     pub fn open() -> Result<Self> {
-        // TODO allow for windows/mac compatbility
+        // TODO allow for windows/mac compatibility
         Database::open_path("/usr/share/keysync/schedule.db")
     }
 
-    /// Opens and create (if nonesistant) a database with a given path;
+    /// Opens and create (if nonexistent) a database with a given path;
     fn open_path<P: AsRef<Path>>(path: P) -> Result<Self> {
         let p = path.as_ref().to_owned();
 
@@ -107,7 +107,7 @@ impl Database {
             )",
             NO_PARAMS,
         )
-        .context("Error initalizing new database")?;
+        .context("Error initializing new database")?;
         Ok(Database { connection: conn })
     }
 
@@ -116,7 +116,7 @@ impl Database {
         self.connection
             .execute("DELETE FROM Schedule WHERE ID = ?1", params![id])
             .with_context(|| {
-                format!("Error deleting databse entry with id: {}", id)
+                format!("Error deleting database entry with id: {}", id)
             })?;
         Ok(())
     }
@@ -172,7 +172,7 @@ pub fn db_last_modified() -> Result<FileTime> {
     last_modified(path)
 }
 
-/// Gets the last modifed date of the schedule
+/// Gets the last modified date of the schedule
 pub fn last_modified<P: AsRef<Path>>(path: P) -> Result<FileTime> {
     let metadata = fs::metadata(&path).with_context(|| {
         format!(

@@ -34,7 +34,7 @@ pub fn check() -> Result<()> {
                 .arg("--enable")
                 .spawn()?;
             if cmd.wait()?.success() {
-                println!("Sucessfully installed and enabled keysync service");
+                println!("Successfully installed and enabled keysync service");
             }
         } else {
             println!("keysync service not installed or started.\n");
@@ -52,7 +52,7 @@ pub fn check() -> Result<()> {
                 .arg("--enable")
                 .spawn()?;
             if cmd.wait()?.success() {
-                println!("Sucessfully enabled keysync service");
+                println!("Successfully enabled keysync service");
             }
         } else {
             println!("keysync service not started.\n");

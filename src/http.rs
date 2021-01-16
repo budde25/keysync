@@ -17,7 +17,7 @@ pub struct Network {
 }
 
 impl Network {
-    /// Creates the Network class, import since it is reccomended to reuse the same client for all requests
+    /// Creates the Network class, import since it is recommended to reuse the same client for all requests
     pub fn new() -> Self {
         let timeout = Duration::new(10, 0);
         let network = Network {
@@ -49,7 +49,7 @@ impl Network {
                 let text = resp.text().await?;
                 let keys = util::clean_keys(util::split_keys(&text));
                 debug!(
-                    "Retrived {} keys from {}",
+                    "Retrieved {} keys from {}",
                     keys.len(),
                     request_url.as_ref()
                 );
@@ -82,8 +82,8 @@ impl Network {
         }
 
         all_keys.sort();
-        all_keys.dedup(); // Dedup inneffective without sorted keys
-        info!("Retrived {} unique keys", all_keys.len());
+        all_keys.dedup(); // Dedup ineffective without sorted keys
+        info!("Retrieved {} unique keys", all_keys.len());
         Ok(all_keys)
     }
 }

@@ -17,12 +17,12 @@ impl AuthorizedKeys {
     /// Sets up Authorized keys for a given directory
     #[allow(dead_code)] // Used for testing
     pub fn open_path<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let pathbuf = path.as_ref().to_path_buf();
-        if !pathbuf.is_file() {
+        let path = path.as_ref().to_path_buf();
+        if !path.is_file() {
             File::create(&path)
                 .context("Failed to create the AuthorizedKeys file")?;
         }
-        Ok(AuthorizedKeys { path: pathbuf })
+        Ok(AuthorizedKeys { path })
     }
 
     /// Sets up the AuthorizedKeys object
