@@ -13,7 +13,7 @@ use super::http::Network;
 pub struct Daemon {
     sleep_time: Duration,
     scheduler: JobScheduler<'static>,
-    last_modifided: FileTime,
+    last_modified: FileTime,
 }
 
 impl Daemon {
@@ -22,8 +22,8 @@ impl Daemon {
         Database::open()?;
         let scheduler: JobScheduler = JobScheduler::new();
         let sleep_time: Duration = Duration::from_secs(60); // 1 minute
-        let last_modifided: FileTime = db_last_modified()?;
-        Ok(Daemon { sleep_time, scheduler, last_modifided })
+        let last_modified: FileTime = db_last_modified()?;
+        Ok(Daemon { sleep_time, scheduler, last_modified })
     }
 
     /// Starts the daemon
@@ -31,9 +31,9 @@ impl Daemon {
         self.schedule();
         loop {
             let modified: FileTime =
-                db_last_modified().unwrap_or(self.last_modifided);
-            if self.last_modifided != modified {
-                self.last_modifided = modified;
+                db_last_modified().unwrap_or(self.last_modified);
+            if self.last_modified != modified {
+                self.last_modified = modified;
                 let scheduler: JobScheduler = JobScheduler::new();
                 // Schedule tasks
                 self.schedule();
@@ -114,7 +114,7 @@ fn run_job(user: String, url: Url) {
         }
     };
 
-    let authorzed_keys = match AuthorizedKeys::open(Some(&user)) {
+    let authorized_keys = match AuthorizedKeys::open(Some(&user)) {
         Ok(a) => a,
         Err(e) => {
             error!("{}", e);
@@ -122,7 +122,7 @@ fn run_job(user: String, url: Url) {
         }
     };
 
-    match authorzed_keys.write_keys(keys, false) {
+    match authorized_keys.write_keys(keys, false) {
         Ok(count) => {
             println!("Added {} keys to a {} authorized_keys file", user, count)
         }

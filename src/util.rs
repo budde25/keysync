@@ -80,7 +80,7 @@ pub fn run_as_root(user: Option<&str>) -> Result<()> {
 }
 
 /// Prompts the user a question, with a (Y,n) attached.
-/// Returns true if the user repsonds with y or yes, false otherwise
+/// Returns true if the user responds with y or yes, false otherwise
 pub fn get_confirmation(query: &str) -> Result<bool> {
     let mut rl = Editor::<()>::new();
     let prompt = format!("{} (Y/n)\n>> ", query);
