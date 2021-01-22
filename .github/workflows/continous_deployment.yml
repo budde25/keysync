@@ -63,7 +63,7 @@ jobs:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
         file: ./*-latest/*
         asset_name: mything
-        tag: ${{ github.ref }}
+        tag: ${{ github.event.client_payload.new_version }}
         overwrite: true
         file_glob: true
 

@@ -1,7 +1,6 @@
 on:
-  push:
-    branches:
-      - main
+  repository_dispatch:
+    types: [ci-passed]
 
 name: Create Tag
 
@@ -18,7 +17,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WITH_V: true
-          DEFAULT_BUMP: patch
+          DEFAULT_BUMP: none
       - name: Repository dispatch tag created event
         uses: peter-evans/repository-dispatch@v1
         with:

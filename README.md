@@ -1,6 +1,7 @@
 # keysync - An SSH syncing utility and service
 
-![CI/CD](https://github.com/budde25/ssh-key-sync/workflows/CI/CD/badge.svg)
+![CI](https://github.com/budde25/ssh-key-sync/workflows/CI/badge.svg)
+![CD](https://github.com/budde25/ssh-key-sync/workflows/CD/badge.svg)
 [![Crates.io](https://img.shields.io/crates/v/keysync)](https://crates.io/crates/keysync)
 [![Crates.io](https://img.shields.io/crates/d/keysync)](https://crates.io/crates/keysync)
 
