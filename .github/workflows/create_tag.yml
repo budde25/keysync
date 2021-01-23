@@ -1,7 +1,3 @@
-on:
-  repository_dispatch:
-    types: [ci-passed]
-
 name: Create Tag
 
 jobs:
