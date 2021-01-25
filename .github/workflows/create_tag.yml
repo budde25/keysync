@@ -14,6 +14,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WITH_V: true
           DEFAULT_BUMP: none
+          CUSTOM_TAG: ${{ github.event.client_payload.new_version  }}
       - name: Repository dispatch tag created event
         uses: peter-evans/repository-dispatch@v1
         with:
