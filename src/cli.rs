@@ -204,7 +204,9 @@ fn is_url_or_empty(val: String) -> Result<(), String> {
 
 /// Custom validator, returns () if val is valid cron schedule, error otherwise
 fn is_cron(val: String) -> Result<(), String> {
-    val.parse::<Schedule>().map(|_| ()).map_err(|x| x.to_string())
+    val.parse::<Schedule>()
+        .map(|_| ())
+        .map_err(|x| x.to_string())
 }
 
 /// Custom validator, returns () if val the user exists on the system, error otherwise

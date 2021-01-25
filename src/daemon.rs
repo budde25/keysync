@@ -23,7 +23,11 @@ impl Daemon {
         let scheduler: JobScheduler = JobScheduler::new();
         let sleep_time: Duration = Duration::from_secs(60); // 1 minute
         let last_modified: FileTime = db_last_modified()?;
-        Ok(Daemon { sleep_time, scheduler, last_modified })
+        Ok(Daemon {
+            sleep_time,
+            scheduler,
+            last_modified,
+        })
     }
 
     /// Starts the daemon

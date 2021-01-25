@@ -7,7 +7,8 @@ use proptest::prelude::*;
 fn test_get_github_budde25() {
     let n = Network::new();
     let url = get_github("budde25");
-    n.get_keys(&url).expect("Args are valid should return a result");
+    n.get_keys(&url)
+        .expect("Args are valid should return a result");
 }
 
 /// Tests that we can get keys from a valid GitLab user, using the default url
@@ -16,7 +17,8 @@ fn test_get_github_budde25() {
 fn test_get_gitlab_budde25() {
     let n = Network::new();
     let url = get_gitlab("budde25", None);
-    n.get_keys(&url).expect("Args are valid should return a result");
+    n.get_keys(&url)
+        .expect("Args are valid should return a result");
 }
 
 /// Tests that we can get keys from a valid GitHub user, using a custom url
@@ -28,7 +30,8 @@ fn test_get_wisc_gitlab_budd() {
         "budde25",
         Some(Url::parse("https://gitlab.cs.wisc.edu/").unwrap()),
     );
-    n.get_keys(&url).expect("Args are valid should return a result");
+    n.get_keys(&url)
+        .expect("Args are valid should return a result");
 }
 
 /// Tests that we cannot get keys from a invalid GitHub user/url
@@ -38,14 +41,18 @@ fn test_get_invalid_url() {
     let n = Network::new();
     let url =
         get_gitlab("budde25", Some(Url::parse("https://abc.edu/").unwrap()));
-    n.get_keys(&url).expect_err("Args not valid should not return result, 404");
+    n.get_keys(&url)
+        .expect_err("Args not valid should not return result, 404");
 }
 
 /// Tests that we generate the correct usl for each service
 #[test]
 fn test_url_completion() {
     assert_eq!(&get_github("budde25"), "https://github.com/budde25.keys");
-    assert_eq!(&get_gitlab("budde25", None), "https://gitlab.com/budde25.keys");
+    assert_eq!(
+        &get_gitlab("budde25", None),
+        "https://gitlab.com/budde25.keys"
+    );
     assert_eq!(
         &get_gitlab(
             "budde25",
