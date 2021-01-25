@@ -1,4 +1,9 @@
+
 name: Create Tag
+
+on:
+  repository_dispatch:
+    types: [ci-passed]
 
 jobs:
   bump_version:
