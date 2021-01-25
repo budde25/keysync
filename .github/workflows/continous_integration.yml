@@ -63,4 +63,4 @@ jobs:
         with:
           token: ${{ secrets.REPO_ACCESS_TOKEN }}
           event-type: ci-passed
-          client-payload: '{"new_version": "${{ inputs.version }}"}'
+          client-payload: '{"new_version": "${{ github.event.inputs.version }}"}'
