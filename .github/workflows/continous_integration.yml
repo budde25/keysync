@@ -1,11 +1,15 @@
+name: CI
+
 on:
   workflow_dispatch:
     inputs:
       version:
         description: 'Version to release'
         required: true
-
-name: CI
+  pull_request:
+    branches:
+      - main
+  
 
 jobs:
   check:
@@ -50,6 +54,7 @@ jobs:
           command: test
   
   dispatch:
+    if: ${{ github.event.workflow_dispatch }}
     name: Repository dispatch ci passed event
     runs-on: ubuntu-latest
     needs: [test, check]
