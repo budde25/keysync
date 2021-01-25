@@ -44,7 +44,7 @@ An SSH key syncing utility
 <!-- Info -->
 # About
 
-keysync is a command line utility and service to help keep your local authorized_keys file synced to a master copy of public keys. 
+keysync is a command line utility and service to help keep your local authorized_keys file synced to a master copy of public keys.  
 
 The program allows syncing from Github, GitLab, Launchpad at the moment, custom url support is coming soon. It downloads and filters only keys that you don't already have a local copy of. This application can be used for either as one time sync when run, or running automatically in the background as a systemd service. You can have the file it updated at a preset interval or a custom cron expression, you can even support multiple users and providers.  
 
@@ -58,7 +58,7 @@ Note: Automatic jobs will fail if the computer goes to sleep/hibernate. The syst
 If you have rust installed you can use cargo.  
 requires a the following packages to be install:
 libsqlite-dev, build-essential, libssl-dev (Debian names)  
-`cargo install nxcloud`   
+`cargo install nxcloud`  
   
 Other packaged binary's are available in [Releases](https://github.com/budde25/keysync/releases).  
 
@@ -68,7 +68,7 @@ Other packaged binary's are available in [Releases](https://github.com/budde25/k
 The binary name is `keysync`  
 
 To display application use `keysync help`  
-Use `keysync <subcommand> help` for help with that subcommand. 
+Use `keysync <subcommand> help` for help with that subcommand.  
 
 <!-- Examples -->
 ### Examples
@@ -103,7 +103,7 @@ This repository is a standard rust project bin structure.
 
 Rust support building or running with the following commands:  
 `cargo build` Will build an executable in `/target/debug/`.  
-`cargo run -- <args>` Will build and run an executable.    
+`cargo run -- <args>` Will build and run an executable.  
 
 <!-- Testing -->
 ### Testing
@@ -127,7 +127,7 @@ To open with your default browser.
 ## Contributing
 
 Contributions are completely welcome and encouraged!  
-Examples of contributing could include: 
+Examples of contributing could include:  
 
 * Submitting a feature request or bug report.  
 * Asking for improved documentation.  
@@ -157,5 +157,6 @@ Email: [budde25@protonmail.com](mailto:budde25@protonmail.com)
 ## License
 
 Dual-licensed under either either of the following:
+
 * [MIT License](LICENSE-MIT)
-* [Apache License](LICENSE-APACHE)
+* [Apache License](LICENSE-APACHE)  
