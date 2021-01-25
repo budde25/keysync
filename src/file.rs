@@ -94,8 +94,11 @@ impl AuthorizedKeys {
             return Ok(keys_to_add.len());
         }
 
-        let prefix =
-            if !ends_with_newline { String::from("\n") } else { String::new() };
+        let prefix = if !ends_with_newline {
+            String::from("\n")
+        } else {
+            String::new()
+        };
         let content: String = prefix + &keys_to_add.join("\n") + "\n"; // We want each to be on its own line while also appending a newline
 
         let mut file: File = fs::OpenOptions::new()

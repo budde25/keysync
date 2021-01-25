@@ -107,10 +107,12 @@ fn test_remove_schedule() {
 
     for i in db.get_schedules().expect("Should get") {
         let int = i.id.unwrap();
-        db.delete_schedule(int).expect("They exist so they should delete");
+        db.delete_schedule(int)
+            .expect("They exist so they should delete");
     }
 
     assert_eq!(db.get_schedules().unwrap().len(), 0);
 
-    db.delete_schedule(0).expect("Can't remove when there are none");
+    db.delete_schedule(0)
+        .expect("Can't remove when there are none");
 }

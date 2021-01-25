@@ -2,8 +2,9 @@ use assert_cmd::Command;
 
 #[test]
 fn test_no_args() {
-    let output_err =
-        Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap().unwrap_err();
+    let output_err = Command::cargo_bin(env!("CARGO_PKG_NAME"))
+        .unwrap()
+        .unwrap_err();
     let output = output_err.as_output().unwrap();
     assert_eq!(output.status.code().unwrap(), 1);
 }

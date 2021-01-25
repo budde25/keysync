@@ -1,19 +1,18 @@
 # Maintainer: Ethan Budd <budde25@protonmail.com>
-_pkgname=keysync
-_version=[version]
-pkgname=$_pkgname-bin
-pkgver=$_version
+pkgname=keysync
+pkgver=3.0.2
 pkgrel=1
-arch=('x86_64')
-pkgdesc="A utility to sync local authorized_keys file updated with your with Github, Gitlab or Launchpad public keys"
-url="https://github.com/budde25/ssh-key-sync/"
-source=("https://github.com/budde25/ssh-key-sync/releases/download/v${_version}/${_pkgname}_${_version}_amd64.deb")
-sha256sums=('[sha256]')
-license=('GPL-3.0-or-later')
-provides=('$_pkgname')
+makedepends=('rust' 'cargo')
+arch=('i686' 'x86_64' 'armv6h' 'armv7h')
+pkgdesc="A utility to sync local authorized_keys file updated with your with Github, Gitlab, and Launchpad public keys"
+url="https://github.com/budde25/ssh-key-sync"
+license=('MIT OR Apache-2.0')
+
+build() {
+    return 0
+}
 
 package() {
-    tar -xf data.tar.xz -C ${pkgdir}
-    cd ${pkgdir}
-    mv lib usr/lib
+    cd $srcdir
+    cargo install --root="$pkgdir" --git=https://github.com/budde25/ssh-key-sync
 }
