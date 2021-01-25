@@ -1,7 +1,9 @@
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release'
+        required: true
 
 name: CI
 
@@ -56,3 +58,4 @@ jobs:
         with:
           token: ${{ secrets.REPO_ACCESS_TOKEN }}
           event-type: ci-passed
+          client-payload: '{"new_version": "${{ inputs.version }}"}'
