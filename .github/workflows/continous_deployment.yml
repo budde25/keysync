@@ -40,6 +40,25 @@ jobs:
         with:
           name: debian-latest
           path: target/debian/*.deb
+
+  create-pkgbuild:
+    name: Create PKGBUILD
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: Install cargo-pkgbuild
+        run: cargo install cargo-pkgbuild
+      - name: Build PKGBUILD
+        run: cargo-pkgbuild
+      - uses: actions/upload-artifact@v2
+        with:
+          name: pkgbuild-latest
+          path: ./PKGBUILD
         
   release:
     name: Publish Release
@@ -56,6 +75,11 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: debian-latest
+
+    - name: Download Arch artifacts
+      uses: actions/download-artifact@v1
+      with:
+        name: pkgbuild-latest
 
     - name: Upload assets
       uses: svenstaro/upload-release-action@v2

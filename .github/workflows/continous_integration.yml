@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release'
+        description: 'Bump, values: [patch, minor, major]'
         required: true
   pull_request:
     branches:
@@ -62,4 +62,4 @@ jobs:
         with:
           token: ${{ secrets.REPO_ACCESS_TOKEN }}
           event-type: ci-passed
-          client-payload: '{"new_version": "${{ github.event.inputs.version }}"}'
+          client-payload: '{"bump": "${{ github.event.inputs.version }}"}'
