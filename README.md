@@ -5,10 +5,11 @@
 An SSH key syncing utility
 
 <!-- Shields -->
-![CI](https://github.com/budde25/ssh-key-sync/workflows/CI/badge.svg)
-![CD](https://github.com/budde25/ssh-key-sync/workflows/CD/badge.svg)
-[![Crates.io](https://img.shields.io/crates/v/keysync)](https://crates.io/crates/keysync)
-[![Crates.io](https://img.shields.io/crates/d/keysync)](https://crates.io/crates/keysync)
+![CI](https://img.shields.io/github/workflow/status/budde25/keysync/CI/main?style=flat-square)
+![CD](https://img.shields.io/github/workflow/status/budde25/keysync/CD/main?style=flat-square)
+[![Crates.io](https://img.shields.io/crates/v/keysync?style=flat-square)](https://crates.io/crates/keysync)
+[![Crates.io](https://img.shields.io/crates/d/keysync?style=flat-square)](https://crates.io/crates/keysync)
+[![License](https://img.shields.io/crates/l/keysync?style=flat-square)](https://crates.io/crates/keysync)
 
 <!-- Table of Contents -->
 <details>
