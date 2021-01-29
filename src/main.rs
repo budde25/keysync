@@ -18,7 +18,7 @@ use db::Database;
 use file::AuthorizedKeys;
 use http::Network;
 
-#[deny(unsafe_code)]
+#[forbid(unsafe_code)]
 
 /// Main, returns () on success
 fn main() -> Result<()> {

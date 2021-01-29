@@ -62,7 +62,7 @@ jobs:
         
   release:
     name: Publish Release
-    needs: [build-bin, build-deb]
+    needs: [build-bin, build-deb, create-pkgbuild]
     runs-on: ubuntu-latest
 
     steps:
