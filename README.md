@@ -41,6 +41,10 @@ An SSH key syncing utility
 </details>
 
 <!-- Image/GIF -->
+<br>
+<p align="center">
+<img width="" alt="Keysync Demo" src="https://raw.githubusercontent.com/budde25/keysync/main/extra/keysync-demo.gif">
+</p>
 
 <!-- Info -->
 # About
