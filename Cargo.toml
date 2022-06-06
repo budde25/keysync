@@ -37,7 +37,7 @@ filetime = "0.2"
 cron = "0.7"
 env_logger = "0.8"
 log = "0.4"
-nix = "0.19"
+nix = "0.20"
 clap = "2.33"
 rusqlite = "0.24"
 rustyline = "7.1"
@@ -47,7 +47,7 @@ unindent = "0.1"
 
 [build-dependencies]
 clap = "2.33.3"
-nix = "0.19"
+nix = "0.20"
 url = "2.2"
 cron = "0.7"
 
