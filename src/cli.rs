@@ -1,4 +1,6 @@
-use clap::{Arg, Command};
+use clap::{
+    crate_authors, crate_description, crate_name, crate_version, Arg, Command,
+};
 use cron::Schedule;
 use nix::unistd::User;
 use std::str::FromStr;
@@ -151,8 +153,10 @@ pub fn app() -> Command<'static> {
         .arg(Arg::new("install").help("Install the Systemd service file").long("install"))
         .arg(Arg::new("enable").help("Enable the keysync service").long("enable"));
 
-    #[cfg(target_os = "linux")]
-    let app = Command::new("keysync")
+    let app = Command::new(crate_name!())
+        .about(crate_description!())
+        .version(crate_version!())
+        .author(crate_authors!())
         .arg_required_else_help(true)
         .subcommand(get)
         .subcommand(set)
