@@ -7,7 +7,8 @@ mod service;
 mod util;
 
 use anyhow::{anyhow, Result};
-use clap::{value_t, values_t, ArgMatches};
+use clap::ArgMatches;
+use cli::DefaultCron;
 use cron::Schedule;
 use log::info;
 use nix::unistd::{Uid, User};
@@ -47,11 +48,11 @@ fn main() -> Result<()> {
 
     // matches subcoommands, passing args to each
     match matches.subcommand() {
-        ("get", Some(m)) => get(m)?,
-        ("set", Some(m)) => set(m)?,
-        ("jobs", Some(m)) => jobs(m)?,
-        ("remove", Some(m)) => remove(m)?,
-        ("daemon", Some(m)) => daemon(m)?,
+        Some(("get", m)) => get(m)?,
+        Some(("set", m)) => set(m)?,
+        Some(("jobs", m)) => jobs(m)?,
+        Some(("remove", m)) => remove(m)?,
+        Some(("daemon", m)) => daemon(m)?,
         _ => unreachable!(),
     }
 
@@ -60,10 +61,10 @@ fn main() -> Result<()> {
 
 /// Gets the keys from a provider
 fn get(m: &ArgMatches) -> Result<()> {
-    let username: String = value_t!(m, "username", String)?;
+    let username: String = m.value_of_t("username")?;
 
     let user: Option<String> = if m.is_present("user") {
-        Some(value_t!(m, "user", String)?)
+        Some(m.value_of_t("user")?)
     } else {
         None
     };
@@ -108,18 +109,18 @@ fn get(m: &ArgMatches) -> Result<()> {
 fn set(m: &ArgMatches) -> Result<()> {
     // Get variables
     let user: String = if m.is_present("user") {
-        value_t!(m, "user", String)?
+        m.value_of_t("user")?
     } else {
         util::get_current_user()?
     };
 
     exit_if_root(Some(&user))?;
 
-    let username: String = value_t!(m, "username", String)?;
+    let username: String = m.value_of_t("username")?;
     let cron: Schedule = if m.is_present("cron") {
-        value_t!(m, "cron", Schedule)?
+        m.value_of_t("cron")?
     } else {
-        let default_cron = value_t!(m, "schedule", cli::DefaultCron)?;
+        let default_cron: DefaultCron = m.value_of_t("schedule")?;
         default_cron.to_schedule()
     };
 
@@ -213,7 +214,7 @@ fn remove(m: &ArgMatches) -> Result<()> {
     let dry_run = m.is_present("dry_run");
 
     let database = Database::open()?;
-    let ids: Vec<u32> = values_t!(m, "ids", u32)?;
+    let ids: Vec<u32> = m.values_of_t("ids")?;
     for id in ids {
         if dry_run {
             println!("Would remove job with id: {}", id);

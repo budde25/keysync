@@ -10,7 +10,6 @@ keywords = ["SSH", "CLI", "utilities", "Github", "keys"]
 categories = ["command-line-utilities"]
 homepage = "https://github.com/budde25/ssh-key-sync"
 repository = "https://github.com/budde25/ssh-key-sync"
-build = "build.rs"
 
 
 [package.metadata.deb]
@@ -37,7 +36,7 @@ cron = "0.11.0"
 env_logger = "0.9.0"
 log = "0.4.17"
 nix = "0.24.1"
-clap = "2.34.0"
+clap = "3.1.18"
 rusqlite = "0.27.0"
 rustyline = "9.1.2"
 regex = "1.5.6"
@@ -45,7 +44,7 @@ once_cell = "1.12.0"
 unindent = "0.1.9"
 
 [build-dependencies]
-clap = "2.34.0"
+clap_complete = "3.1.4"
 nix = "0.24.1"
 url = "2.2.2"
 cron = "0.11.0"

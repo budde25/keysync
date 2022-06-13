@@ -6,7 +6,7 @@ fn test_no_args() {
         .unwrap()
         .unwrap_err();
     let output = output_err.as_output().unwrap();
-    assert_eq!(output.status.code().unwrap(), 1);
+    assert_eq!(output.status.code().unwrap(), 2);
 }
 
 #[test]
