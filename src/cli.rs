@@ -191,7 +191,7 @@ fn is_cron(val: &str) -> Result<(), String> {
 
 /// Custom validator, returns () if val the user exists on the system, error otherwise
 fn is_user(val: &str) -> Result<(), String> {
-    let result = User::from_name(&val).map_err(|x| x.to_string())?;
+    let result = User::from_name(val).map_err(|x| x.to_string())?;
     if result.is_none() {
         Err(format!("user '{}' does not exist on system", val))
     } else {
