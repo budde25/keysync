@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use log::{debug, info};
-use reqwest::{Client, ClientBuilder, Error, Response};
+use reqwest::blocking::{Client, ClientBuilder, Response};
+use reqwest::Error;
 use std::time::Duration;
 use std::vec;
 use url::Url;
@@ -29,8 +30,7 @@ impl Network {
 
     /// Gets the SSH keys from a requested url (as string)
     /// Return a Vector of Strings that have been cleaned
-    #[tokio::main]
-    pub async fn get_keys<S: AsRef<str>>(
+    pub fn get_keys<S: AsRef<str>>(
         &self,
         request_url: S,
     ) -> Result<Vec<String>> {
@@ -38,7 +38,6 @@ impl Network {
             .client
             .get(request_url.as_ref())
             .send()
-            .await
             .with_context(|| {
                 format!("Error getting keys from: {}", request_url.as_ref())
             })?
@@ -46,7 +45,7 @@ impl Network {
 
         match response {
             Ok(resp) => {
-                let text = resp.text().await?;
+                let text = resp.text()?;
                 let keys = util::clean_keys(util::split_keys(&text));
                 debug!(
                     "Retrieved {} keys from {}",

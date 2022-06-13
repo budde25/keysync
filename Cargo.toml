@@ -2,7 +2,7 @@
 name = "keysync"
 version = "3.0.3"
 authors = ["Ethan Budd <budde25@protonmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "A utility to sync local authorized_keys file updated with your with Github, Gitlab, and Launchpad public keys"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
@@ -27,8 +27,7 @@ systemd-units = { enable = true }
 
 
 [dependencies]
-reqwest = { version = "0.11.10", features = ["json"] }
-tokio = { version = "1.19.2", features = ["full"] }
+reqwest = { version = "0.11.10", features = ["json", "blocking"] }
 anyhow = "1.0.57"
 dirs = "4.0.0"
 url = "2.2.2"
