@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Context, Result};
 use filetime::FileTime;
-use rusqlite::{params, Connection, Error, NO_PARAMS};
+use rusqlite::{params, Connection, Error};
 use std::{
     fmt, fs,
     path::{Path, PathBuf},
@@ -105,7 +105,7 @@ impl Database {
             url text not null,
             unique (user, cron, url)
             )",
-            NO_PARAMS,
+            [],
         )
         .context("Error initializing new database")?;
         Ok(Database { connection: conn })

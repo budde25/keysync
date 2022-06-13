@@ -49,6 +49,8 @@ An SSH key syncing utility
 <!-- Info -->
 # About
 
+**Warning this project unmaintained and definitely over engineered, there are easier ways to fetch keys"**
+
 keysync is a command line utility and service to help keep your local authorized_keys file synced to a master copy of public keys.  
 
 The program allows syncing from Github, GitLab, Launchpad at the moment, custom url support is coming soon. It downloads and filters only keys that you don't already have a local copy of. This application can be used for either as one time sync when run, or running automatically in the background as a systemd service. You can have the file it updated at a preset interval or a custom cron expression, you can even support multiple users and providers.  
